@@ -47,3 +47,37 @@ export function paraLinha(registro, userId) {
 export function umPorDia(registros) {
   return [...new Map(registros.map((registro) => [registro.dia, registro])).values()];
 }
+
+export const COLUNAS_JORNADAS = 'vigente_desde, tolerancia_antes, tolerancia_depois, modo, semana';
+
+/**
+ * @description Linha da tabela `jornadas` para a versão de jornada do app
+ * @param {object} linha
+ * @returns {object}
+ */
+export function paraJornada(linha) {
+  return {
+    vigenteDesde: linha.vigente_desde,
+    toleranciaAntes: linha.tolerancia_antes,
+    toleranciaDepois: linha.tolerancia_depois,
+    modo: linha.modo,
+    semana: linha.semana,
+  };
+}
+
+/**
+ * @description Versão de jornada (já normalizada) para a linha da tabela `jornadas` de um usuário
+ * @param {object} jornada
+ * @param {string} userId
+ * @returns {object}
+ */
+export function linhaDeJornada(jornada, userId) {
+  return {
+    user_id: userId,
+    vigente_desde: jornada.vigenteDesde,
+    tolerancia_antes: jornada.toleranciaAntes,
+    tolerancia_depois: jornada.toleranciaDepois,
+    modo: jornada.modo,
+    semana: jornada.semana,
+  };
+}

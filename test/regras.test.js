@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { avaliar, cargaPadraoDe, calcularDiaEmAndamento, validarMarcacoes, ehUtil } from '../public/shared/regras.js';
+import { VERSOES_EQUIVALENTES } from '../scripts/regras-legado.js';
 
 const dia = (campos) => ({ dia: '2026-10-14', tipo: 'normal', carga: '08:00', ...campos });
 
@@ -29,10 +30,10 @@ test('dia sem registro é pendente; com marcação incompleta fica em aberto', (
   assert.equal(avaliar(dia({ chegada: '08:00' })).estado, 'aberto');
 });
 
-test('jornada de 08:48 até fevereiro/26 e 08:00 a partir de março', () => {
-  assert.equal(cargaPadraoDe('2026-02-27'), 528);
-  assert.equal(cargaPadraoDe('2026-03-02'), 480);
-  assert.equal(avaliar({ dia: '2026-02-27', tipo: 'compensacao' }).saldo, -528);
+test('vigências semeadas: 08:48 até fevereiro/26 e 08:00 a partir de março', () => {
+  assert.equal(cargaPadraoDe('2026-02-27', VERSOES_EQUIVALENTES), 528);
+  assert.equal(cargaPadraoDe('2026-03-02', VERSOES_EQUIVALENTES), 480);
+  assert.equal(avaliar({ dia: '2026-02-27', tipo: 'compensacao' }, VERSOES_EQUIVALENTES).saldo, -528);
 });
 
 test('ehUtil: segunda a sexta', () => {

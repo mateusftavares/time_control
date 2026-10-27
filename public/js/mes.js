@@ -1,5 +1,6 @@
 import { hoje, hhmm, textoSaldo, rotuloDia, diaDaSemana, somaMes, DIAS_SEMANA, MESES } from '/shared/tempo.js';
-import { avaliar, carga as cargaDoRegistro, ehUtil, cargaPadraoDe, TOLERANCIA, INICIO_HISTORICO } from '/shared/regras.js';
+import { avaliar, carga as cargaDoRegistro, ehUtil, cargaPadraoDe } from '/shared/regras.js';
+import { jornadaDe, inicioDoHistorico, textoTolerancia } from '/shared/jornada.js';
 import * as store from './registros.js';
 import { elementos, escapar } from './util.js';
 
@@ -65,7 +66,8 @@ function diasDoMes(anoMes) {
 /* Do mês mais antigo até o atual, do mais recente para o mais velho. */
 function mesesDisponiveis() {
   const atual = hoje().slice(0, 7);
-  let maisAntigo = INICIO_HISTORICO < atual ? INICIO_HISTORICO : atual;
+  const inicio = inicioDoHistorico();
+  let maisAntigo = inicio && inicio < atual ? inicio : atual;
 
   store.todos().forEach((registro) => {
     const anoMes = registro.dia.slice(0, 7);
@@ -190,7 +192,7 @@ function pintarResumos(meses, totaisPorMes) {
 
   el.bancoSub.textContent = `${periodoDoHistorico(meses)} · ${store.todos().size} dias registrados`;
   pintarValor(el.saldoMes, banco);
-  el.saldoCap.textContent = `${meses.length} meses somados · tolerância de ${TOLERANCIA} min por dia`;
+  el.saldoCap.textContent = `${meses.length} meses somados · ${textoTolerancia(jornadaDe(hoje()))}`;
   el.trabalhadoRotulo.textContent = `Trabalhado em ${nomeDoMes(meses[0])}`;
   el.totalTrabalhado.textContent = hhmm(mesAtual.trabalhado);
   el.capDias.textContent = `${mesAtual.fechados} dias fechados · saldo do mês ${textoSaldo(mesAtual.saldo)}`;
@@ -261,7 +263,7 @@ function previaDoEditor() {
     return;
   }
   pintarPrevia(hhmm(avaliacao.trabalhado), avaliacao.saldo,
-    avaliacao.saldo === 0 ? `dentro da tolerância de ${TOLERANCIA} min` : '');
+    avaliacao.saldo === 0 ? `dentro da ${textoTolerancia(jornadaDe(diaEditado))}` : '');
 }
 
 function pintarTipos() {

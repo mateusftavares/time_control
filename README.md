@@ -6,6 +6,8 @@ Ponto do dia, banco de horas e pomodoro 25/5, agora na web: **site estático no 
 - **Login** por e-mail e senha. Não há cadastro público: o admin convida.
 - **Cada usuário vê só os próprios dados**, inclusive o admin. Quem garante isso é a RLS do Postgres, não o front.
 - **Usuários** (só admin): convidar, mudar o papel (`admin`/`usuario`), desativar e reativar.
+- **Meu perfil:** nome, foto, troca de senha e a **jornada com tolerância**, por vigência.
+- **Navegação:** uma cápsula flutuante embaixo (Hoje, Banco, Importar, Usuários, Perfil). O resumo que ficava na barra lateral agora fica num cabeçalho compacto no topo de todas as telas: banco acumulado, mês, dias sem marcação, saída prevista e mini pomodoro.
 
 ## Arquitetura
 
@@ -34,10 +36,14 @@ navegador ──(supabase-js, anon key + JWT do usuário)──▶ Supabase: Pos
    npx supabase login
    npx supabase init          # cria supabase/config.toml; a pasta migrations/ é mantida
    npx supabase link --project-ref <ref>
-   npx supabase db push       # aplica supabase/migrations/20261027120000_inicial.sql
+   npx supabase db push       # aplica as migrações de supabase/migrations/, em ordem
    ```
 
-   A migração cria `perfis`, `dias` e `pomodoro`, a RLS de todas as tabelas, o trigger que cria o perfil de cada usuário novo e a trava que impede ficar sem admin ativo.
+   | Migração | O que faz |
+   |---|---|
+   | `20261027120000_inicial.sql` | `perfis`, `dias` e `pomodoro`, a RLS de todas as tabelas, o trigger que cria o perfil de cada usuário novo e a trava que impede ficar sem admin ativo |
+   | `20261027180000_jornadas.sql` | tabela `jornadas` (vigência + semana + tolerância), a RLS dela, a semeadura das vigências equivalentes às regras antigas e o congelamento da carga dos dias sem carga |
+   | `20261027180100_perfil_e_avatares.sql` | update só de `nome` e `avatar_path` no próprio perfil, e o bucket privado `avatares` (2 MB, JPEG/PNG/WebP) com policies por pasta `<uid>/` |
 
 ### 2. Supabase: Auth
 
@@ -149,6 +155,9 @@ npm test     # regras, espelho, validação de usuários, mapeamento e conferên
 - **CSP** no `netlify.toml`: scripts só do próprio site e do jsDelivr (supabase-js com versão fixada), conexões só com o próprio site e o Supabase, sem `unsafe-inline`, sem iframes.
 - **Sessão:** com "Lembrar de mim", a sessão fica no `localStorage` e sobrevive ao fechar o navegador. Sem ele, fica no `sessionStorage` e some ao fechar a aba.
 - A tela de Usuários monta nomes e e-mails com `textContent`, nunca com `innerHTML`.
+- **Perfil:** o cliente só tem update nas colunas `nome` e `avatar_path` do próprio perfil (privilégio por coluna + policy). Papel e ativo seguem fechados.
+- **Fotos:** ficam no bucket **privado** `avatares`, em `<uid>/avatar.jpg`, e só o dono lê, grava e apaga a própria pasta. Elas aparecem por **URL assinada** de 1 hora. Num bucket público, qualquer um com o endereço veria a foto, e isso contraria a regra de cada usuário ver só os próprios dados. O navegador recorta a foto e a redesenha em JPEG 256×256, o que tira o EXIF (que pode ter a localização). O bucket recusa SVG e arquivos acima de 2 MB.
+- **Troca de senha:** o supabase-js 2.45 não confere a senha atual. A tela faz antes um login com a senha atual, e só depois chama o `updateUser`.
 
 ## Estrutura
 
@@ -164,18 +173,71 @@ public/                 o site publicado
     sessao.js           sessão, perfil, sair
     api.js              mesma interface da API antiga, agora sobre o Supabase
     usuarios.js         tela de Usuários (admin) → /api/usuarios
+    perfil.js           Meu perfil: nome, foto, senha e jornada
     login.js, definir-senha.js, acesso.js, hash-inicial.js
     main.js, navegacao.js, registros.js, ponto.js, mes.js, importacao.js, pomodoro.js, ...
-  shared/               regras isomórficas (as mesmas do app local) + linhas.js (camelCase ↔ snake_case)
+  shared/               regras isomórficas + jornada.js (vigências e tolerância) + linhas.js (camelCase ↔ snake_case)
 netlify/functions/usuarios.mjs   POST /api/usuarios: listar, convidar, alterarPapel, desativar, reativar
 src/regras-usuarios.js           validação dos pedidos e regra do último admin (funções puras)
 scripts/
   migrar-sqlite-para-supabase.js
-  conferencia.js                 banco de horas e diferenças, para o --conferir
+  conferir-jornadas.js           regra antiga × jornada por vigência, com os dados do Supabase
+  conferencia.js                 banco de horas e diferenças, para as conferências
+  regras-legado.js               regras fixas antigas, congeladas, e as vigências equivalentes
+  supabase-admin.js              cliente de serviço e leituras usadas pelos scripts
 supabase/migrations/             schema, RLS, triggers
 test/                            node --test
 ```
 
 ## Regras do banco de horas
 
-São as mesmas do app local, em `public/shared/regras.js`: jornada de 08:00 (08:48 até fevereiro/2026), almoço mínimo de 1h, tolerância de 10 min, feriado e folga com saldo zero, compensação consumindo a jornada. Elas valem para **todos** os usuários. Se outra pessoa tiver outra jornada, essa regra precisa virar configuração por perfil.
+Ficam em `public/shared/regras.js` e `public/shared/jornada.js`. Valem para todos: almoço mínimo de 1h (descontado mesmo se marcado a menos), feriado e folga com saldo zero, compensação consumindo a carga do dia. **A jornada e a tolerância são de cada usuário**, configuradas em **Meu perfil**.
+
+### Jornada por vigência
+
+Cada usuário tem versões de jornada, cada uma com **"válida a partir de"**. Um dia é calculado com a versão de maior vigência que não passa da data dele. Antes da primeira versão (ou sem nenhuma), vale o **padrão**: seg–sex 08:00–12:00 e 13:00–17:00 (08:00 por dia), tolerância de 10/10 min, acumulativa. É o modelo do app desde março/2026.
+
+Uma versão define, para cada dia da semana:
+- se tem expediente;
+- os horários oficiais de entrada, saída para o almoço, volta e saída.
+
+A **carga do dia** sai desses horários: da entrada à saída, menos o almoço oficial. Dia sem expediente tem carga zero (tudo o que for trabalhado é saldo positivo) e, sem registro, não conta como "sem marcação". O dia que tem a carga gravada no registro usa a gravada: é o campo "Jornada do dia" da tela Hoje.
+
+Para mudar a jornada daqui para a frente, crie uma **nova vigência**. Editar ou apagar uma vigência antiga recalcula os dias dela, e o app pede confirmação.
+
+### Tolerância: dois modos
+
+A versão tem **tolerância antes** e **tolerância depois**, em minutos, de 0 a 120. A diferença que passa do limite conta **inteira**, sem abater a tolerância (11 min de atraso valem 11).
+
+| Modo | Como funciona |
+|---|---|
+| **Acumulativo** (o de sempre) | Saldo do dia = trabalhado − carga. Se o saldo for negativo e estiver a até **antes** minutos de zero, ou positivo a até **depois** minutos, vira zero. "Antes" é o lado de quem parou antes de cumprir a carga; "depois", o de quem passou dela. |
+| **Individual** | Cada marcação (entrada, saída p/ almoço, volta, saída) é comparada com o horário oficial do dia. Se ela estiver até **antes** minutos adiantada ou até **depois** minutos atrasada, vale o horário oficial; senão, vale o horário batido. O saldo é o trabalhado com as marcações ajustadas menos a carga, sem tolerância extra sobre o dia. O "trabalhado" mostrado continua sendo o real. Em dia sem expediente não há horário oficial, então nada é ajustado. |
+
+Exemplo, com expediente 08:00–12:00/13:00–17:00 e tolerância 10/10:
+
+| Marcações | Acumulativo | Individual |
+|---|---|---|
+| 08:15 … 17:20 | +5 no dia, dentro: **00:00** | nenhuma marcação a até 10 min: **+00:05** |
+| 07:52 … 17:09 | +17 no dia, fora: **+00:17** | as duas dentro, valem 08:00 e 17:00: **00:00** |
+
+### Como o histórico ficou igual
+
+A migração `20261027180000_jornadas.sql` faz duas coisas:
+
+1. **Semeia** para cada usuário existente as versões equivalentes às regras fixas antigas:
+   - desde 2026-02-01: seg–sex 08:00–12:00/13:00–17:48 (08:48);
+   - desde 2026-03-01: 08:00–12:00/13:00–17:00 (08:00).
+
+   As duas são acumulativas, com tolerância de 10/10.
+2. **Congela a carga.** Grava em todo dia `normal` ou `compensacao` sem carga a carga que a regra antiga dava: 08:48 antes de março/2026 e 08:00 depois. A regra antiga dava 08:48/08:00 também em sábado, domingo e antes de fevereiro, onde a nova daria 0 ou o padrão. Com a carga gravada, o resultado não muda.
+
+O teste `test/jornada.test.js` compara as duas regras em cerca de 2 mil dias gerados (fevereiro a dezembro/2026, marcações em volta dos limites da tolerância, com e sem carga gravada, todos os tipos). Ele confere também os dias úteis e o início do histórico. A regra antiga, congelada, está em `scripts/regras-legado.js`.
+
+Para conferir com os dados reais (não grava nada):
+
+```powershell
+npm run conferir-jornadas -- --usuario seu@email.com --esperado=-01:51
+```
+
+O script compara o acumulado, o saldo de cada mês e de cada dia e os dias sem marcação, e lista os dias que ainda estejam sem carga. Sai com código 0 se o histórico for idêntico e 2 se divergir.

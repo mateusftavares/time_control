@@ -2,7 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { paraRegistro, paraLinha, umPorDia } from '../public/shared/linhas.js';
 import { normalizarRegistro } from '../public/shared/registro.js';
-import { resumoDoBanco, compararDias, mesesDivergentes } from '../scripts/conferencia.js';
+import { resumoDoBanco, compararDias, mesesDivergentes, diasComSaldoDiferente } from '../scripts/conferencia.js';
+import { paraJornada, linhaDeJornada } from '../public/shared/linhas.js';
+import { JORNADA_PADRAO } from '../public/shared/jornada.js';
 
 const USUARIO = '11111111-1111-4111-8111-111111111111';
 const dia = (campos) => ({ dia: '2026-10-14', tipo: 'normal', chegada: null, almocoIni: null, almocoFim: null, saida: null, carga: '08:00', ...campos });
@@ -45,4 +47,19 @@ test('compararDias e mesesDivergentes apontam o que não foi migrado igual', () 
   assert.deepEqual(compararDias(origem, destino), { faltando: ['2026-10-02'], sobrando: ['2026-10-06'], diferentes: ['2026-10-05'] });
   assert.deepEqual(mesesDivergentes(resumoDoBanco(origem), resumoDoBanco(destino)), [{ mes: '2026-10', origem: -480, destino: 0 }]);
   assert.deepEqual(mesesDivergentes(resumoDoBanco(origem), resumoDoBanco(origem)), []);
+});
+
+test('diasComSaldoDiferente lista só os dias em que as regras discordam', () => {
+  const registros = [dia({ dia: '2026-10-01', tipo: 'folga' }), dia({ dia: '2026-10-02', tipo: 'compensacao' })];
+  const zeraCompensacao = (registro) => ({ saldo: registro.tipo === 'compensacao' ? 0 : 0 });
+  const regraNormal = (registro) => ({ saldo: registro.tipo === 'compensacao' ? -480 : 0 });
+  assert.deepEqual(diasComSaldoDiferente(registros, regraNormal, zeraCompensacao), [{ dia: '2026-10-02', a: -480, b: 0 }]);
+});
+
+test('linhaDeJornada e paraJornada fazem a volta completa', () => {
+  const versao = { ...JORNADA_PADRAO, vigenteDesde: '2026-11-01' };
+  const linha = linhaDeJornada(versao, USUARIO);
+  assert.equal(linha.user_id, USUARIO);
+  assert.equal(linha.tolerancia_antes, 10);
+  assert.deepEqual(paraJornada(linha), versao);
 });

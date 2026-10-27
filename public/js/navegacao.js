@@ -1,4 +1,4 @@
-const TELAS = ['hoje', 'banco', 'importar'];
+const TELAS = ['hoje', 'banco', 'importar', 'perfil'];
 const TELAS_RESTRITAS = ['usuarios'];
 const ouvintes = new Set();
 
@@ -13,7 +13,7 @@ export function liberarTela(tela) {
 }
 
 /**
- * @description Tela pedida no endereço (#hoje, #banco, #importar, #usuarios); Hoje quando não reconhece
+ * @description Tela pedida no endereço (#hoje, #banco, #importar, #perfil, #usuarios); Hoje quando não reconhece
  * @returns {string}
  */
 export function telaAtual() {
@@ -43,7 +43,7 @@ function mostrar() {
   document.querySelectorAll('.tela').forEach((secao) => {
     secao.hidden = secao.dataset.view !== tela;
   });
-  document.querySelectorAll('.menu-item').forEach((item) => {
+  document.querySelectorAll('.capsula-item').forEach((item) => {
     const ativo = item.dataset.view === tela;
     item.classList.toggle('ativo', ativo);
     if (ativo) {

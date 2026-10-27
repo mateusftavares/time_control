@@ -9,18 +9,10 @@ import { iniciarMes } from './mes.js';
 import { iniciarImportacao } from './importacao.js';
 import { iniciarPomodoro, gravarPomodoroAoSair } from './pomodoro.js';
 import { iniciarUsuarios } from './usuarios.js';
+import { iniciarPerfil, carregarJornadas } from './perfil.js';
 import { mostrarAviso, avisoDeFalha } from './aviso.js';
 
-const el = elementos(['ladoAvatar', 'ladoNome', 'ladoEmail', 'btnSair', 'menuUsuarios']);
-
-function pintarUsuario({ nome, email }) {
-  const exibido = nome || email || '—';
-  el.ladoNome.textContent = exibido;
-  el.ladoNome.title = exibido;
-  el.ladoEmail.textContent = email ?? '';
-  el.ladoEmail.title = email ?? '';
-  el.ladoAvatar.textContent = exibido.trim().charAt(0) || '?';
-}
+const el = elementos(['btnSair', 'menuUsuarios']);
 
 function desligarBotoes() {
   document.querySelectorAll('button').forEach((botao) => {
@@ -82,7 +74,6 @@ async function iniciar() {
   }
 
   document.body.removeAttribute('data-autenticando');
-  pintarUsuario(perfil ?? { nome: '', email: sessao.user.email });
   if (perfil?.papel === 'admin') {
     liberarTela('usuarios');
     el.menuUsuarios.hidden = false;
@@ -90,7 +81,9 @@ async function iniciar() {
   }
   iniciarNavegacao();
 
+  /* Sem as jornadas, o banco seria calculado com o padrão e mostraria um histórico errado: falha igual ao histórico. */
   try {
+    await carregarJornadas();
     await store.carregar();
   } catch (erro) {
     mostrarAviso(avisoDeFalha('carregar o histórico', erro) + ' Recarregue a página para tentar de novo.');
@@ -98,6 +91,12 @@ async function iniciar() {
     return;
   }
 
+  iniciarPerfil({
+    id: sessao.user.id,
+    nome: perfil?.nome ?? '',
+    email: perfil?.email || sessao.user.email,
+    avatarPath: perfil?.avatar_path ?? null,
+  });
   iniciarPonto();
   iniciarMes();
   iniciarImportacao();

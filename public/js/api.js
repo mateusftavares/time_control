@@ -1,6 +1,9 @@
 import { normalizarRegistro, diaValido } from '/shared/registro.js';
 import { sanitizarEstado } from '/shared/pomodoro.js';
-import { COLUNAS_DIAS, paraRegistro, paraLinha, umPorDia } from '/shared/linhas.js';
+import {
+  COLUNAS_DIAS, COLUNAS_JORNADAS, paraRegistro, paraLinha, umPorDia, paraJornada, linhaDeJornada,
+} from '/shared/linhas.js';
+import { normalizarJornada } from '/shared/jornada.js';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js';
 import { supabase } from './supabase.js';
 import { idDoUsuario, tokenAtual, sair } from './sessao.js';
@@ -9,6 +12,10 @@ const LIMITE_LOTE = 1000;
 const LINHAS_POR_PAGINA = 1000;
 const CONFLITO = 'user_id,dia';
 const SESSAO_EXPIRADA = ['PGRST301', 'PGRST303'];
+const CONFLITO_JORNADA = 'user_id,vigente_desde';
+const BUCKET_DAS_FOTOS = 'avatares';
+const VALIDADE_DA_URL_DA_FOTO_S = 60 * 60;
+const TAMANHO_MAXIMO_DO_NOME = 100;
 
 /**
  * @description Falha de uma chamada à API; status 0 quando o servidor nem respondeu
@@ -156,6 +163,83 @@ async function salvarPomodoro(dia, entrada, { keepalive = false } = {}) {
   return estado;
 }
 
+async function listarJornadas() {
+  const linhas = await executar(supabase.from('jornadas').select(COLUNAS_JORNADAS).order('vigente_desde'));
+  return linhas.map(paraJornada);
+}
+
+/**
+ * @description Grava uma versão de jornada; se a data de vigência mudou, a versão da data antiga sai
+ * @param {object} entrada
+ * @param {string|null} vigenciaAnterior - "vigente desde" da versão que estava sendo editada
+ * @returns {Promise<object>}
+ */
+async function salvarJornada(entrada, vigenciaAnterior = null) {
+  const resultado = normalizarJornada(entrada);
+  if (!resultado.ok) {
+    throw new ErroApi('jornada inválida', 400, resultado.erros);
+  }
+  const linha = linhaDeJornada(resultado.jornada, exigirUsuario());
+  await executar(supabase.from('jornadas').upsert(linha, { onConflict: CONFLITO_JORNADA }));
+  if (vigenciaAnterior && vigenciaAnterior !== resultado.jornada.vigenteDesde) {
+    await apagarJornada(vigenciaAnterior);
+  }
+  return resultado.jornada;
+}
+
+async function apagarJornada(vigenteDesde) {
+  exigirDia(vigenteDesde);
+  await executar(supabase.from('jornadas').delete().eq('vigente_desde', vigenteDesde));
+  return null;
+}
+
+async function salvarNome(nome) {
+  const limpo = String(nome ?? '').trim();
+  if (limpo.length > TAMANHO_MAXIMO_DO_NOME || /[\u0000-\u001F\u007F]/.test(limpo)) {
+    throw new ErroApi(`o nome deve ter até ${TAMANHO_MAXIMO_DO_NOME} caracteres, sem quebras de linha`, 400);
+  }
+  await executar(supabase.from('perfis').update({ nome: limpo }).eq('id', exigirUsuario()));
+  return limpo;
+}
+
+const caminhoDaFoto = (userId) => `${userId}/avatar.jpg`;
+
+/**
+ * @description Envia a foto (já reduzida para JPEG) para a pasta do usuário e grava o caminho no perfil
+ * @param {Blob} foto
+ * @returns {Promise<string>} caminho no bucket
+ */
+async function enviarFoto(foto) {
+  const caminho = caminhoDaFoto(exigirUsuario());
+  const { error } = await supabase.storage.from(BUCKET_DAS_FOTOS)
+    .upload(caminho, foto, { contentType: 'image/jpeg', upsert: true, cacheControl: '3600' });
+  if (error) {
+    throw new ErroApi(error.message, error.statusCode ? Number(error.statusCode) : 0);
+  }
+  await executar(supabase.from('perfis').update({ avatar_path: caminho }).eq('id', exigirUsuario()));
+  return caminho;
+}
+
+async function removerFoto() {
+  const userId = exigirUsuario();
+  await executar(supabase.from('perfis').update({ avatar_path: null }).eq('id', userId));
+  await supabase.storage.from(BUCKET_DAS_FOTOS).remove([caminhoDaFoto(userId)]);
+  return null;
+}
+
+/**
+ * @description URL assinada (1h) da foto; o bucket é privado, então só o dono consegue gerar
+ * @param {string|null} caminho
+ * @returns {Promise<string|null>}
+ */
+async function urlDaFoto(caminho) {
+  if (!caminho) {
+    return null;
+  }
+  const { data, error } = await supabase.storage.from(BUCKET_DAS_FOTOS).createSignedUrl(caminho, VALIDADE_DA_URL_DA_FOTO_S);
+  return error ? null : data.signedUrl;
+}
+
 /**
  * @description Chamadas ao Supabase, com a mesma interface da antiga API do Express. A RLS
  *   limita tudo aos dados do usuário logado. `keepalive` deixa a gravação terminar com a aba fechando
@@ -167,4 +251,11 @@ export const api = {
   gravarLote,
   lerPomodoro,
   salvarPomodoro,
+  listarJornadas,
+  salvarJornada,
+  apagarJornada,
+  salvarNome,
+  enviarFoto,
+  removerFoto,
+  urlDaFoto,
 };

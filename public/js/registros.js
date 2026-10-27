@@ -144,3 +144,10 @@ export async function gravarLote(lista, sobrescrever) {
   }
   return resultado;
 }
+
+/**
+ * @description Avisa as telas para recalcular tudo, sem recarregar (ex.: a jornada mudou)
+ */
+export function recalcular() {
+  notificar({ dia: null, origem: 'jornada' });
+}

@@ -1,40 +1,16 @@
-import { paraMin, diaDaSemana } from './tempo.js';
+import { paraMin } from './tempo.js';
+import { jornadaDe, expedienteDe, cargaPadraoDe } from './jornada.js';
 
-export const CARGA_PADRAO = 480;
+export { cargaPadraoDe, ehUtil } from './jornada.js';
+
 export const ALMOCO_MINIMO = 60;
-
-/* A tolerância zera o saldo do dia, mas não abate: 11 min de atraso valem 11. */
-export const TOLERANCIA = 10;
-
-/* A jornada mudou: até fevereiro/26 eram 08:48 por dia, de março em diante 08:00. */
-export const JORNADAS = [{ antesDe: '2026-03-01', minutos: 528 }];
-
-/* Fevereiro/26 é o primeiro mês na empresa: o histórico não vai além disso. */
-export const INICIO_HISTORICO = '2026-02';
 
 export const TIPOS = ['normal', 'feriado', 'folga', 'compensacao'];
 export const MARCACOES = ['chegada', 'almocoIni', 'almocoFim', 'saida'];
 export const NOMES_DAS_MARCACOES = { chegada: 'chegada', almocoIni: 'saída p/ almoço', almocoFim: 'volta do almoço', saida: 'saída' };
 
-/**
- * @description Jornada em minutos vigente num dia
- * @param {string} dia - AAAA-MM-DD
- * @returns {number}
- */
-export function cargaPadraoDe(dia) {
-  const vigente = JORNADAS.find((jornada) => String(dia) < jornada.antesDe);
-  return vigente ? vigente.minutos : CARGA_PADRAO;
-}
-
-/**
- * @description Segunda a sexta
- * @param {string} dia - AAAA-MM-DD
- * @returns {boolean}
- */
-export function ehUtil(dia) {
-  const semana = diaDaSemana(dia);
-  return semana >= 1 && semana <= 5;
-}
+/* Marcação do registro ↔ horário oficial do expediente. */
+const HORARIO_OFICIAL = { chegada: 'entrada', almocoIni: 'almocoIni', almocoFim: 'almocoFim', saida: 'saida' };
 
 /**
  * @description Almoço descontado de um dia fechado: o marcado, com piso de 1h
@@ -65,19 +41,70 @@ export function trabalhado(registro) {
 /**
  * @description Carga do registro, ou a jornada vigente no dia quando não informada
  * @param {object} registro
+ * @param {object[]} [versoes] - versões de jornada; sem elas, as do usuário logado
  * @returns {number}
  */
-export function carga(registro) {
+export function carga(registro, versoes) {
   const informada = paraMin(registro && registro.carga);
-  return informada === null ? cargaPadraoDe(registro && registro.dia) : informada;
+  return informada === null ? cargaPadraoDe(registro && registro.dia, versoes) : informada;
 }
 
 /**
- * @description Situação de um dia no banco de horas; saldo null quando o dia ainda não conta
+ * @description Diferença (em minutos, negativa = antes) que a tolerância absorve; passou do limite, conta inteira
+ * @param {number} diferenca
+ * @param {number} antes - minutos tolerados para menos/antes
+ * @param {number} depois - minutos tolerados para mais/depois
+ * @returns {boolean}
+ */
+export function dentroDaTolerancia(diferenca, antes, depois) {
+  return diferenca < 0 ? -diferenca <= antes : diferenca <= depois;
+}
+
+/**
+ * @description Modo individual: cada marcação a até `antes` min antes ou `depois` min depois do horário
+ *   oficial vale como o horário oficial; fora disso, vale a marcação
+ * @param {object} registro
+ * @param {object} expediente - horário oficial do dia
+ * @param {number} antes
+ * @param {number} depois
+ * @returns {object} cópia do registro com as marcações ajustadas
+ */
+export function ajustarMarcacoes(registro, expediente, antes, depois) {
+  const ajustado = { ...registro };
+  if (!expediente?.trabalha) {
+    return ajustado;
+  }
+  MARCACOES.forEach((campo) => {
+    const marcado = paraMin(registro[campo]);
+    const oficial = paraMin(expediente[HORARIO_OFICIAL[campo]]);
+    if (marcado !== null && oficial !== null && dentroDaTolerancia(marcado - oficial, antes, depois)) {
+      ajustado[campo] = expediente[HORARIO_OFICIAL[campo]];
+    }
+  });
+  return ajustado;
+}
+
+function saldoComTolerancia(registro, minutos, cargaDoDia, versoes) {
+  const jornada = jornadaDe(registro.dia, versoes);
+  const { toleranciaAntes: antes, toleranciaDepois: depois } = jornada;
+
+  if (jornada.modo === 'individual') {
+    const ajustado = ajustarMarcacoes(registro, expedienteDe(registro.dia, versoes), antes, depois);
+    return trabalhado(ajustado) - cargaDoDia;
+  }
+
+  const bruto = minutos - cargaDoDia;
+  return dentroDaTolerancia(bruto, antes, depois) ? 0 : bruto;
+}
+
+/**
+ * @description Situação de um dia no banco de horas; saldo null quando o dia ainda não conta.
+ *   Acumulativo: a tolerância vale sobre o saldo do dia. Individual: vale em cada marcação
  * @param {object|undefined} registro
+ * @param {object[]} [versoes] - versões de jornada; sem elas, as do usuário logado
  * @returns {{estado: string, trabalhado: number|null, saldo: number|null}}
  */
-export function avaliar(registro) {
+export function avaliar(registro, versoes) {
   if (!registro) {
     return { estado: 'pendente', trabalhado: null, saldo: null };
   }
@@ -85,7 +112,7 @@ export function avaliar(registro) {
     return { estado: registro.tipo, trabalhado: null, saldo: 0 };
   }
   if (registro.tipo === 'compensacao') {
-    return { estado: 'compensacao', trabalhado: null, saldo: -carga(registro) };
+    return { estado: 'compensacao', trabalhado: null, saldo: -carga(registro, versoes) };
   }
 
   const minutos = trabalhado(registro);
@@ -94,8 +121,7 @@ export function avaliar(registro) {
     return { estado: temMarcacao ? 'aberto' : 'pendente', trabalhado: null, saldo: null };
   }
 
-  const bruto = minutos - carga(registro);
-  return { estado: 'normal', trabalhado: minutos, saldo: Math.abs(bruto) <= TOLERANCIA ? 0 : bruto };
+  return { estado: 'normal', trabalhado: minutos, saldo: saldoComTolerancia(registro, minutos, carga(registro, versoes), versoes) };
 }
 
 /**

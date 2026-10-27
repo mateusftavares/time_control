@@ -1,24 +1,10 @@
 import { TIPOS, MARCACOES, NOMES_DAS_MARCACOES } from './regras.js';
+import { diaValido } from './tempo.js';
 
-const FORMATO_DIA = /^(\d{4})-(\d{2})-(\d{2})$/;
 const FORMATO_HORARIO = /^([01]\d|2[0-3]):[0-5]\d$/;
 const FORMATO_DURACAO = /^\d{2}:[0-5]\d$/;
 
-/**
- * @description Data AAAA-MM-DD que existe no calendário
- * @param {unknown} dia
- * @returns {boolean}
- */
-export function diaValido(dia) {
-  const partes = typeof dia === 'string' && dia.match(FORMATO_DIA);
-  if (!partes) {
-    return false;
-  }
-
-  const [ano, mes, d] = [Number(partes[1]), Number(partes[2]), Number(partes[3])];
-  const data = new Date(ano, mes - 1, d);
-  return data.getFullYear() === ano && data.getMonth() === mes - 1 && data.getDate() === d;
-}
+export { diaValido };
 
 /**
  * @description Texto no formato esperado, ou null quando vazio; undefined quando é de outro tipo ou formato

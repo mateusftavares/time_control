@@ -5,14 +5,15 @@ const CAMPOS_COMPARADOS = ['tipo', ...MARCACOES, 'carga'];
 /**
  * @description Banco de horas de uma lista de registros, pelas mesmas regras do app: total e saldo por mês
  * @param {object[]} registros
+ * @param {(registro: object) => {saldo: number|null}} [regra] - avaliação de um dia; padrão: avaliar com as jornadas ativas
  * @returns {{dias: number, acumulado: number, porMes: Record<string, number>}}
  */
-export function resumoDoBanco(registros) {
+export function resumoDoBanco(registros, regra = avaliar) {
   const porMes = {};
   let acumulado = 0;
 
   registros.forEach((registro) => {
-    const { saldo } = avaliar(registro);
+    const { saldo } = regra(registro);
     if (saldo === null) {
       return;
     }
@@ -60,4 +61,17 @@ export function mesesDivergentes(a, b) {
   return meses
     .map((mes) => ({ mes, origem: a.porMes[mes] ?? 0, destino: b.porMes[mes] ?? 0 }))
     .filter(({ origem, destino }) => origem !== destino);
+}
+
+/**
+ * @description Dias cujo saldo muda entre duas regras (ex.: a antiga fixa e a nova por vigência)
+ * @param {object[]} registros
+ * @param {(registro: object) => {saldo: number|null}} regraA
+ * @param {(registro: object) => {saldo: number|null}} regraB
+ * @returns {Array<{dia: string, a: number|null, b: number|null}>}
+ */
+export function diasComSaldoDiferente(registros, regraA, regraB) {
+  return registros
+    .map((registro) => ({ dia: registro.dia, a: regraA(registro).saldo, b: regraB(registro).saldo }))
+    .filter(({ a, b }) => a !== b);
 }

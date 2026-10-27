@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "test": "node --test",
-    "migrar": "node scripts/migrar-sqlite-para-supabase.js"
+    "migrar": "node scripts/migrar-sqlite-para-supabase.js",
+    "conferir-jornadas": "node scripts/conferir-jornadas.js"
   },
   "engines": {
     "node": ">=22.13"

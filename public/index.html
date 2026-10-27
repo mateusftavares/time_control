@@ -2,9 +2,9 @@
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Controle Pessoal</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='4' fill='%238DB4E2'/%3E%3Ccircle cx='8' cy='8.6' r='4.2' fill='none' stroke='%230E1622' stroke-width='1.4'/%3E%3Cpath d='M8 6.6v2.2l1.3 1.2' fill='none' stroke='%230E1622' stroke-width='1.4' stroke-linecap='round'/%3E%3C/svg%3E">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>TimeVer</title>
+  <link rel="icon" type="image/svg+xml" href="/img/timever-icone.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap">
@@ -14,66 +14,29 @@
 <body data-autenticando>
 <div class="shell">
 
-  <nav class="lateral" aria-label="Navegação principal">
-    <a class="marca" href="#hoje">
-      <span class="marca-icone">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l2.5 2.5"></path><path d="M9 2h6"></path></svg>
-      </span>
-      <span class="marca-texto">
-        <span class="marca-nome">Controle Pessoal</span>
-        <span class="marca-sub">Ponto · Banco · Foco</span>
-      </span>
-    </a>
+  <main class="conteudo">
+    <header class="topo">
+      <a class="marca" href="#hoje">
+        <img class="marca-icone" src="/img/timever-icone.svg" alt="" width="34" height="34">
+        <span class="marca-texto">
+          <span class="marca-nome">TimeVer</span>
+          <span class="marca-sub">Ponto · Banco · Foco</span>
+        </span>
+      </a>
 
-    <div class="menu">
-      <a class="menu-item" href="#hoje" data-view="hoje">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>
-        Hoje
-        <span class="menu-badge mono" id="menuPrevisao"></span>
-      </a>
-      <a class="menu-item" href="#banco" data-view="banco">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10"></path><path d="M10 20V4"></path><path d="M16 20v-7"></path><path d="M22 20H2"></path></svg>
-        Banco de horas
-      </a>
-      <a class="menu-item" href="#importar" data-view="importar">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12"></path><path d="M7 10l5 5 5-5"></path><path d="M4 20h16"></path></svg>
-        Importar TiqueTaque
-      </a>
-      <a class="menu-item" href="#usuarios" data-view="usuarios" id="menuUsuarios" hidden>
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"></circle><path d="M2.5 20c.6-3.6 3.2-5.5 6.5-5.5s5.9 1.9 6.5 5.5"></path><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8"></path><path d="M18.5 14.8c1.7.7 2.7 2.4 3 5.2"></path></svg>
-        Usuários
-      </a>
-    </div>
-
-    <section class="painel-lateral" aria-label="Resumo">
-      <span class="rotulo">Banco acumulado</span>
-      <span class="painel-valor mono" id="ladoBanco">--:--</span>
-      <div class="painel-linhas">
-        <div class="painel-linha"><span>Mês atual</span><span class="mono" id="ladoMes">--:--</span></div>
-        <div class="painel-linha"><span>Sem marcação</span><span id="ladoPendentes">—</span></div>
-      </div>
-      <div class="painel-pomodoro" id="ladoPomodoro" data-phase="foco" data-ativo="false">
-        <div class="painel-linha">
+      <section class="resumo" aria-label="Resumo">
+        <div class="resumo-item"><span class="rotulo">Banco acumulado</span><b class="mono" id="ladoBanco">--:--</b></div>
+        <div class="resumo-item"><span class="rotulo">Mês atual</span><b class="mono" id="ladoMes">--:--</b></div>
+        <div class="resumo-item"><span class="rotulo">Sem marcação</span><b id="ladoPendentes">—</b></div>
+        <div class="resumo-item"><span class="rotulo">Saída prevista</span><b class="mono" id="menuPrevisao"></b></div>
+        <div class="resumo-pomodoro" id="ladoPomodoro" data-phase="foco" data-ativo="false">
           <span class="painel-pomo-fase"><span class="bolinha" aria-hidden="true"></span><b id="ladoPomoFase">Pomodoro</b></span>
           <b class="mono" id="ladoPomoTempo">25:00</b>
+          <button class="botao botao-secundario botao-pequeno" id="ladoPomoBotao" type="button">Começar foco</button>
         </div>
-        <button class="botao botao-secundario botao-pequeno" id="ladoPomoBotao" type="button">Começar foco</button>
-      </div>
-    </section>
+      </section>
+    </header>
 
-    <section class="usuario-lateral" aria-label="Usuário logado">
-      <span class="usuario-avatar" id="ladoAvatar" aria-hidden="true"></span>
-      <span class="usuario-texto">
-        <span class="usuario-nome" id="ladoNome">—</span>
-        <span class="usuario-email" id="ladoEmail"></span>
-      </span>
-      <button class="botao-icone" id="btnSair" type="button" aria-label="Sair" title="Sair">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3"></path><path d="M10 17l-5-5 5-5"></path><path d="M5 12h11"></path></svg>
-      </button>
-    </section>
-  </nav>
-
-  <main class="conteudo">
     <div class="aviso" id="aviso" role="alert" hidden></div>
 
     <!-- ==================== HOJE ==================== -->
@@ -424,7 +387,117 @@
         </aside>
       </div>
     </section>
+
+    <!-- ==================== MEU PERFIL ==================== -->
+    <section class="tela" data-view="perfil" aria-labelledby="perfilTitulo" hidden>
+      <header class="cabecalho">
+        <div class="cabecalho-texto">
+          <h1 id="perfilTitulo">Meu perfil</h1>
+          <p id="perfilSub"></p>
+        </div>
+        <div class="cabecalho-acoes">
+          <button class="botao botao-secundario" id="btnSair" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3"></path><path d="M10 17l-5-5 5-5"></path><path d="M5 12h11"></path></svg>
+            Sair
+          </button>
+        </div>
+      </header>
+
+      <div class="colunas">
+        <div class="coluna-lateral perfil-coluna">
+          <section class="cartao" aria-label="Nome e foto">
+            <div class="perfil-foto">
+              <span class="avatar avatar-grande" id="perfilAvatar" aria-hidden="true"></span>
+              <div class="perfil-foto-acoes">
+                <label class="botao botao-secundario botao-pequeno botao-arquivo">
+                  Trocar foto
+                  <input class="so-leitor" type="file" id="fotoArquivo" accept="image/jpeg,image/png,image/webp">
+                </label>
+                <button class="botao-texto" id="fotoRemover" type="button">Remover foto</button>
+                <span class="texto-mudo pequeno">JPEG, PNG ou WebP, até 2 MB</span>
+              </div>
+            </div>
+            <form class="perfil-form" id="formNome" novalidate>
+              <label>Nome<input id="perfilNome" maxlength="100" autocomplete="name"></label>
+              <button class="botao botao-primario botao-pequeno" id="nomeSalvar" type="submit">Salvar nome</button>
+            </form>
+            <span class="texto-mudo pequeno estado" id="perfilEstado" role="status"></span>
+          </section>
+
+          <section class="cartao" aria-label="Trocar senha">
+            <div class="cartao-cabeca"><h2>Trocar senha</h2></div>
+            <form class="perfil-form" id="formTrocarSenha" novalidate>
+              <input type="email" id="senhaUsuario" autocomplete="username" hidden>
+              <label>Senha atual<input type="password" id="senhaAtual" autocomplete="current-password" maxlength="72"></label>
+              <label>Nova senha<input type="password" id="senhaNova" autocomplete="new-password" minlength="8" maxlength="72"></label>
+              <label>Repita a nova senha<input type="password" id="senhaConfirma" autocomplete="new-password" maxlength="72"></label>
+              <button class="botao botao-primario botao-pequeno" id="senhaSalvar" type="submit">Trocar senha</button>
+            </form>
+            <span class="texto-mudo pequeno estado" id="senhaEstado" role="status"></span>
+          </section>
+        </div>
+
+        <section class="cartao jornada" aria-labelledby="jornadaTitulo">
+          <div class="cartao-cabeca">
+            <h2 id="jornadaTitulo">Jornada e tolerância</h2>
+            <button class="botao botao-secundario botao-pequeno" id="jornadaNova" type="button">Nova vigência</button>
+          </div>
+          <p class="texto-mudo pequeno">Cada dia é calculado com a versão vigente na data dele. Para mudar daqui para a frente, crie uma nova vigência. Editar uma vigência antiga recalcula os dias dela.</p>
+          <div class="vigencias" id="jornadaVersoes" role="group" aria-label="Vigências"></div>
+
+          <form class="jornada-form" id="formJornada" novalidate>
+            <label class="jornada-vigencia">Válida a partir de<input type="date" id="jornadaDesde" required></label>
+
+            <div class="jornada-semana">
+              <div class="jornada-linha cabeca-tabela">
+                <span>Dia</span><span>Entrada</span><span>Saída p/ almoço</span><span>Volta</span><span>Saída</span><span class="num">Carga</span>
+              </div>
+              <div id="jornadaDias"></div>
+            </div>
+
+            <div class="jornada-tolerancia">
+              <label>Tolerância antes (min)<input type="number" id="tolAntes" min="0" max="120" step="1" inputmode="numeric"></label>
+              <label>Tolerância depois (min)<input type="number" id="tolDepois" min="0" max="120" step="1" inputmode="numeric"></label>
+              <div class="segmentado modo" id="modoTolerancia" role="group" aria-label="Modo da tolerância">
+                <button type="button" data-modo="acumulativo" aria-pressed="true">Acumulativo</button>
+                <button type="button" data-modo="individual" aria-pressed="false">Individual</button>
+              </div>
+            </div>
+            <p class="texto-mudo pequeno" id="modoExplicacao"></p>
+
+            <div class="jornada-acoes">
+              <button class="botao botao-perigo botao-pequeno" id="jornadaApagar" type="button">Apagar vigência</button>
+              <span class="texto-mudo pequeno estado" id="jornadaEstado" role="status"></span>
+              <button class="botao botao-primario" id="jornadaSalvar" type="submit">Salvar jornada</button>
+            </div>
+          </form>
+        </section>
+      </div>
+    </section>
   </main>
+
+  <nav class="capsula" aria-label="Navegação principal">
+    <a class="capsula-item" href="#hoje" data-view="hoje">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>
+      <span>Hoje</span>
+    </a>
+    <a class="capsula-item" href="#banco" data-view="banco">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10"></path><path d="M10 20V4"></path><path d="M16 20v-7"></path><path d="M22 20H2"></path></svg>
+      <span>Banco</span>
+    </a>
+    <a class="capsula-item" href="#importar" data-view="importar">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12"></path><path d="M7 10l5 5 5-5"></path><path d="M4 20h16"></path></svg>
+      <span>Importar</span>
+    </a>
+    <a class="capsula-item" href="#usuarios" data-view="usuarios" id="menuUsuarios" hidden>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"></circle><path d="M2.5 20c.6-3.6 3.2-5.5 6.5-5.5s5.9 1.9 6.5 5.5"></path><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8"></path><path d="M18.5 14.8c1.7.7 2.7 2.4 3 5.2"></path></svg>
+      <span>Usuários</span>
+    </a>
+    <a class="capsula-item" href="#perfil" data-view="perfil">
+      <span class="avatar" id="navAvatar" aria-hidden="true"></span>
+      <span>Perfil</span>
+    </a>
+  </nav>
 </div>
 </body>
 </html>

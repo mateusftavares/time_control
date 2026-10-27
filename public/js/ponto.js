@@ -1,8 +1,9 @@
 import { hoje, paraMin, hhmm, agoraMin, MINUTOS_POR_DIA } from '/shared/tempo.js';
 import {
-  MARCACOES, NOMES_DAS_MARCACOES, ALMOCO_MINIMO, TOLERANCIA,
+  MARCACOES, NOMES_DAS_MARCACOES, ALMOCO_MINIMO,
   cargaPadraoDe, calcularDiaEmAndamento, validarMarcacoes, trabalhado,
 } from '/shared/regras.js';
+import { jornadaDe, textoTolerancia } from '/shared/jornada.js';
 import * as store from './registros.js';
 import { elementos, textoComDestaque, teclaLimpa } from './util.js';
 import { tituloPonto } from './titulo.js';
@@ -325,7 +326,7 @@ function render() {
   el.agora.textContent = hhmm(agora);
   el.hojeTitulo.textContent = tituloDoDia();
   el.hojeSub.textContent = `Jornada de ${hhmm(marcacoes.carga ?? 0)} · almoço mínimo de ${ALMOCO_MINIMO / 60}h`
-    + ` · tolerância de ${TOLERANCIA} min`;
+    + ` · ${textoTolerancia(jornadaDe(diaAtual))}`;
   pintarMarcacoes(erros);
 
   if (marcacoes.chegada === null || temErro) {
@@ -367,6 +368,7 @@ export function iniciarPonto() {
   store.assinar(({ dia, origem }) => {
     if (origem !== ORIGEM && (dia === null || dia === diaAtual)) {
       preencher(store.obter(diaAtual));
+      ultimaPintura = '';
       render();
     }
   });
