@@ -1,0 +1,430 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Controle Pessoal</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='4' fill='%238DB4E2'/%3E%3Ccircle cx='8' cy='8.6' r='4.2' fill='none' stroke='%230E1622' stroke-width='1.4'/%3E%3Cpath d='M8 6.6v2.2l1.3 1.2' fill='none' stroke='%230E1622' stroke-width='1.4' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap">
+  <link rel="stylesheet" href="/css/app.css">
+  <script type="module" src="/js/main.js"></script>
+</head>
+<body data-autenticando>
+<div class="shell">
+
+  <nav class="lateral" aria-label="Navegação principal">
+    <a class="marca" href="#hoje">
+      <span class="marca-icone">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l2.5 2.5"></path><path d="M9 2h6"></path></svg>
+      </span>
+      <span class="marca-texto">
+        <span class="marca-nome">Controle Pessoal</span>
+        <span class="marca-sub">Ponto · Banco · Foco</span>
+      </span>
+    </a>
+
+    <div class="menu">
+      <a class="menu-item" href="#hoje" data-view="hoje">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>
+        Hoje
+        <span class="menu-badge mono" id="menuPrevisao"></span>
+      </a>
+      <a class="menu-item" href="#banco" data-view="banco">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10"></path><path d="M10 20V4"></path><path d="M16 20v-7"></path><path d="M22 20H2"></path></svg>
+        Banco de horas
+      </a>
+      <a class="menu-item" href="#importar" data-view="importar">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12"></path><path d="M7 10l5 5 5-5"></path><path d="M4 20h16"></path></svg>
+        Importar TiqueTaque
+      </a>
+      <a class="menu-item" href="#usuarios" data-view="usuarios" id="menuUsuarios" hidden>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"></circle><path d="M2.5 20c.6-3.6 3.2-5.5 6.5-5.5s5.9 1.9 6.5 5.5"></path><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8"></path><path d="M18.5 14.8c1.7.7 2.7 2.4 3 5.2"></path></svg>
+        Usuários
+      </a>
+    </div>
+
+    <section class="painel-lateral" aria-label="Resumo">
+      <span class="rotulo">Banco acumulado</span>
+      <span class="painel-valor mono" id="ladoBanco">--:--</span>
+      <div class="painel-linhas">
+        <div class="painel-linha"><span>Mês atual</span><span class="mono" id="ladoMes">--:--</span></div>
+        <div class="painel-linha"><span>Sem marcação</span><span id="ladoPendentes">—</span></div>
+      </div>
+      <div class="painel-pomodoro" id="ladoPomodoro" data-phase="foco" data-ativo="false">
+        <div class="painel-linha">
+          <span class="painel-pomo-fase"><span class="bolinha" aria-hidden="true"></span><b id="ladoPomoFase">Pomodoro</b></span>
+          <b class="mono" id="ladoPomoTempo">25:00</b>
+        </div>
+        <button class="botao botao-secundario botao-pequeno" id="ladoPomoBotao" type="button">Começar foco</button>
+      </div>
+    </section>
+
+    <section class="usuario-lateral" aria-label="Usuário logado">
+      <span class="usuario-avatar" id="ladoAvatar" aria-hidden="true"></span>
+      <span class="usuario-texto">
+        <span class="usuario-nome" id="ladoNome">—</span>
+        <span class="usuario-email" id="ladoEmail"></span>
+      </span>
+      <button class="botao-icone" id="btnSair" type="button" aria-label="Sair" title="Sair">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3"></path><path d="M10 17l-5-5 5-5"></path><path d="M5 12h11"></path></svg>
+      </button>
+    </section>
+  </nav>
+
+  <main class="conteudo">
+    <div class="aviso" id="aviso" role="alert" hidden></div>
+
+    <!-- ==================== HOJE ==================== -->
+    <section class="tela" data-view="hoje" aria-labelledby="hojeTitulo">
+      <header class="cabecalho">
+        <div class="cabecalho-texto">
+          <h1 id="hojeTitulo">Hoje</h1>
+          <p id="hojeSub">Jornada do dia · almoço mínimo de 1h · tolerância de 10 min</p>
+        </div>
+        <div class="cabecalho-acoes">
+          <span class="relogio"><span>agora</span><b class="mono" id="agora">--:--</b></span>
+          <button class="botao botao-primario" id="btnBater" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l4 4L19 6"></path></svg>
+            <span id="btnBaterTexto">Bater ponto: chegada</span>
+            <kbd>Enter</kbd>
+          </button>
+        </div>
+      </header>
+
+      <div class="colunas">
+        <div class="coluna-principal">
+          <div class="cartao destaque" id="cardPonto" data-fase="vazio">
+            <div class="destaque-topo">
+              <div class="destaque-info">
+                <span class="rotulo">Previsão de saída</span>
+                <span class="previsao mono" id="previsao">--:--</span>
+                <span class="destaque-sub" id="pontoSub">Bata a chegada para começar</span>
+              </div>
+              <div class="destaque-estado">
+                <span class="pilula" id="fasePill" aria-live="polite">Informe a chegada</span>
+                <span class="mono texto-mudo" id="percentual"></span>
+              </div>
+            </div>
+
+            <div class="linha-do-dia">
+              <div class="trilho" id="trilho" role="img" aria-label="Linha do dia"></div>
+              <div class="trilho-horas mono" id="trilhoHoras"></div>
+              <div class="legenda">
+                <span><i class="amostra amostra-trabalho"></i>trabalhado</span>
+                <span><i class="amostra amostra-almoco"></i>almoço</span>
+                <span><i class="amostra amostra-previsto"></i>a trabalhar</span>
+                <span><i class="amostra amostra-agora"></i>agora</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="cartao">
+            <div class="cartao-cabeca">
+              <h2>Marcações</h2>
+              <span class="texto-mudo">clique num horário para corrigir</span>
+              <button class="botao-texto" id="btnLimpar" type="button">Limpar o dia</button>
+            </div>
+            <div class="marcacoes">
+              <label class="marcacao" data-campo="chegada">
+                <span class="marcacao-rotulo">Chegada <span class="marcacao-selo"></span></span>
+                <input type="time" id="chegada">
+                <span class="marcacao-erro" id="erroChegada"></span>
+              </label>
+              <label class="marcacao" data-campo="almocoIni">
+                <span class="marcacao-rotulo">Saída p/ almoço <span class="marcacao-selo"></span></span>
+                <input type="time" id="almocoIni">
+                <span class="marcacao-erro" id="erroAlmocoIni"></span>
+              </label>
+              <label class="marcacao" data-campo="almocoFim">
+                <span class="marcacao-rotulo">Volta do almoço <span class="marcacao-selo"></span></span>
+                <input type="time" id="almocoFim">
+                <span class="marcacao-erro" id="erroAlmocoFim"></span>
+              </label>
+              <label class="marcacao" data-campo="saida">
+                <span class="marcacao-rotulo">Saída <span class="marcacao-selo"></span></span>
+                <input type="time" id="saida">
+                <span class="marcacao-erro" id="erroSaida"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="numeros">
+            <div class="cartao numero">
+              <span class="numero-rotulo">Trabalhado</span>
+              <span class="numero-valor mono" id="trabalhado">--:--</span>
+              <span class="numero-legenda" id="capTrabalhado">antes e depois do almoço</span>
+            </div>
+            <div class="cartao numero">
+              <span class="numero-rotulo" id="labelRestante">Falta</span>
+              <span class="numero-valor mono" id="restante">--:--</span>
+              <span class="numero-legenda" id="capRestante">jornada menos trabalhado</span>
+            </div>
+            <div class="cartao numero">
+              <span class="numero-rotulo">Almoço</span>
+              <span class="numero-valor mono cor-almoco" id="almoco">--:--</span>
+              <span class="numero-legenda" id="capAlmoco">mínimo de 1h</span>
+            </div>
+            <label class="cartao numero">
+              <span class="numero-rotulo">Jornada do dia</span>
+              <input type="time" class="numero-valor mono numero-campo" id="carga">
+              <span class="numero-legenda">duração, editável</span>
+            </label>
+          </div>
+
+          <p class="formula mono" id="formula"></p>
+        </div>
+
+        <aside class="coluna-lateral">
+          <section class="cartao pomodoro" id="cardPomo" data-phase="foco" data-paused="false" aria-label="Pomodoro">
+            <div class="cartao-cabeca">
+              <h2>Pomodoro</h2>
+              <span class="pilula" id="phasePill">Foco</span>
+            </div>
+
+            <div class="pomo-corpo">
+              <div class="anel">
+                <svg viewBox="0 0 112 112" aria-hidden="true">
+                  <circle class="anel-trilho" cx="56" cy="56" r="48"></circle>
+                  <circle class="anel-progresso" id="anelProgresso" cx="56" cy="56" r="48"></circle>
+                </svg>
+                <span class="anel-centro">
+                  <span class="anel-tempo mono" id="clock" role="timer">25:00</span>
+                  <span class="anel-nota" id="clockNote">de 25:00</span>
+                </span>
+              </div>
+              <div class="pomo-info">
+                <span class="pomo-etapa" id="stageSub"></span>
+                <div class="ciclo" id="cycleTrack" role="img"></div>
+                <span class="texto-mudo pequeno">o 5º descanso é o longo, de 10 min</span>
+              </div>
+            </div>
+
+            <div class="pomo-controles">
+              <button class="botao botao-primario" id="btnMain" type="button">Começar foco</button>
+              <button class="botao botao-secundario" id="btnPause" type="button">Pausar</button>
+              <button class="botao botao-fantasma" id="btnSkip" type="button">Pular</button>
+            </div>
+
+            <div class="painel-motivo" id="reasonPanel" hidden>
+              <span class="painel-motivo-titulo">Por que você está parando?</span>
+              <span class="texto-mudo pequeno">O relógio congela e o tempo entra na conta do motivo.</span>
+              <div class="motivos" id="reasonGrid"></div>
+              <button class="botao-texto" id="btnCancelPause" type="button">Cancelar</button>
+            </div>
+
+            <div class="barra-pausa" id="pauseBar" hidden>
+              <span class="barra-pausa-texto" id="pauseWhy">Em pausa</span>
+              <span class="mono texto-mudo" id="pauseElapsed">00:00</span>
+              <button class="botao botao-secundario botao-pequeno" id="btnResume" type="button">Voltar ao trabalho</button>
+            </div>
+
+            <div class="pomo-hoje">
+              <div class="linha-info"><span class="texto-secundario">Hoje</span><span><b class="mono" id="statPomos">0</b> pomodoros · <b class="mono" id="statFocus">0</b> min de foco</span></div>
+              <div id="reasonList"></div>
+              <span class="texto-mudo pequeno" id="reasonEmpty">Nenhuma pausa registrada hoje.</span>
+            </div>
+
+            <div class="pomo-rodape">
+              <button class="alternancia" id="btnSound" type="button" aria-pressed="true"><span id="soundLabel">Som</span></button>
+              <button class="alternancia" id="btnAuto" type="button" aria-pressed="true">Emendar etapas</button>
+              <button class="botao-texto" id="btnReset" type="button">Zerar dia</button>
+            </div>
+          </section>
+
+          <section class="cartao" aria-label="Banco de horas">
+            <div class="cartao-cabeca">
+              <h2>Banco de horas</h2>
+              <a class="link-pequeno" href="#banco">ver histórico</a>
+            </div>
+            <div class="banco-resumo">
+              <span class="banco-valor mono" id="hojeBanco">--:--</span>
+              <span class="texto-mudo pequeno" id="hojeBancoCap">acumulado</span>
+            </div>
+            <div class="grafico" id="grafico" role="img"></div>
+            <div class="grafico-meses" id="graficoMeses"></div>
+          </section>
+        </aside>
+      </div>
+    </section>
+
+    <!-- ==================== BANCO DE HORAS ==================== -->
+    <section class="tela" data-view="banco" aria-labelledby="bancoTitulo" hidden>
+      <header class="cabecalho">
+        <div class="cabecalho-texto">
+          <h1 id="bancoTitulo">Banco de horas</h1>
+          <p id="bancoSub">Carregando…</p>
+        </div>
+        <div class="cabecalho-acoes">
+          <div class="segmentado" id="filtros" role="group" aria-label="Filtrar dias">
+            <button type="button" data-filtro="todos" aria-pressed="true">Todos</button>
+            <button type="button" data-filtro="pendentes" aria-pressed="false">Sem marcação</button>
+            <button type="button" data-filtro="abonados" aria-pressed="false">Abonados</button>
+          </div>
+          <a class="botao botao-secundario" href="#importar">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12"></path><path d="M7 10l5 5 5-5"></path><path d="M4 20h16"></path></svg>
+            Importar do TiqueTaque
+          </a>
+        </div>
+      </header>
+
+      <div class="kpis">
+        <div class="cartao numero">
+          <span class="numero-rotulo">Banco acumulado</span>
+          <span class="numero-valor grande mono" id="saldoMes">--:--</span>
+          <span class="numero-legenda" id="saldoCap"></span>
+        </div>
+        <div class="cartao numero">
+          <span class="numero-rotulo" id="trabalhadoRotulo">Trabalhado no mês</span>
+          <span class="numero-valor grande mono" id="totalTrabalhado">--:--</span>
+          <span class="numero-legenda" id="capDias"></span>
+        </div>
+        <div class="cartao numero">
+          <span class="numero-rotulo">Dias sem marcação</span>
+          <span class="numero-valor grande mono" id="totalPendentes">0</span>
+          <span class="numero-legenda" id="capPendentes"></span>
+        </div>
+      </div>
+
+      <div class="colunas">
+        <section class="cartao historico" aria-label="Histórico por mês">
+          <div class="historico-rolagem">
+            <div class="historico-tabela">
+              <div class="linha-tabela cabeca-tabela">
+                <span>Dia</span><span>Situação</span><span class="num">Chegada</span><span class="num">Almoço</span>
+                <span class="num">Volta</span><span class="num">Saída</span><span class="num">Trabalhado</span><span class="num">Saldo</span>
+              </div>
+              <div id="mesCorpo"></div>
+            </div>
+          </div>
+          <p class="texto-mudo" id="mesEstado">Carregando…</p>
+        </section>
+
+        <aside class="cartao editor" id="editor" aria-label="Corrigir dia" hidden>
+          <div class="editor-topo">
+            <div>
+              <span class="texto-mudo pequeno">Corrigir dia</span>
+              <h2 id="diaTitulo">Dia</h2>
+            </div>
+            <button class="botao-icone" id="diaFechar" type="button" aria-label="Fechar">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12"></path><path d="M18 6L6 18"></path></svg>
+            </button>
+          </div>
+
+          <div class="tipos" id="tipoGrid" role="group" aria-label="O que foi este dia">
+            <button class="tipo" type="button" data-tipo="normal" aria-pressed="true">Dia trabalhado<small>conta pelas marcações</small></button>
+            <button class="tipo" type="button" data-tipo="feriado" aria-pressed="false">Feriado<small>saldo zero</small></button>
+            <button class="tipo" type="button" data-tipo="folga" aria-pressed="false">Folga<small>saldo zero</small></button>
+            <button class="tipo" type="button" data-tipo="compensacao" aria-pressed="false">Compensação<small>consome a jornada</small></button>
+          </div>
+
+          <div class="editor-campos" id="diaMarcacoes">
+            <label>Chegada<input type="time" id="dChegada"></label>
+            <label>Saída p/ almoço<input type="time" id="dAlmocoIni"></label>
+            <label>Volta do almoço<input type="time" id="dAlmocoFim"></label>
+            <label>Saída<input type="time" id="dSaida"></label>
+          </div>
+
+          <div class="editor-previa">
+            <span class="texto-secundario">Trabalhado</span><b class="mono" id="previaTrabalhado">—</b>
+            <span class="texto-secundario editor-previa-saldo">saldo</span><b class="mono" id="previaSaldo">—</b>
+          </div>
+          <span class="texto-mudo pequeno" id="previaNota"></span>
+
+          <div class="editor-acoes">
+            <button class="botao botao-primario" id="diaSalvar" type="button">Salvar dia</button>
+            <button class="botao botao-perigo" id="diaApagar" type="button">Apagar</button>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- ==================== IMPORTAR ==================== -->
+    <section class="tela" data-view="importar" aria-labelledby="importarTitulo" hidden>
+      <header class="cabecalho">
+        <div class="cabecalho-texto">
+          <h1 id="importarTitulo">Importar do TiqueTaque</h1>
+          <p>Abra o espelho do mês, selecione a tabela com o mouse, copie e cole. Cada dia é conferido contra o saldo oficial antes de gravar.</p>
+        </div>
+      </header>
+
+      <div class="colunas">
+        <section class="cartao importar-colar" aria-label="Colar o espelho">
+          <div class="cartao-cabeca">
+            <span class="passo">1</span>
+            <h2>Cole o espelho</h2>
+            <span class="texto-mudo pequeno">lê sozinho ao colar</span>
+          </div>
+          <label class="so-leitor" for="impTexto">Texto do espelho</label>
+          <textarea id="impTexto" rows="16" spellcheck="false" placeholder="21/09/2026&#10;seg&#10;08:22 12:24 13:28 17:26&#10;&#10;26/09/2026&#10;sáb&#10;DSR"></textarea>
+          <div class="linha-acoes">
+            <label class="caixa"><input type="checkbox" id="impSobrescrever"> Sobrescrever dias já registrados</label>
+            <button class="botao botao-secundario botao-pequeno" id="impLimpar" type="button">Limpar</button>
+          </div>
+        </section>
+
+        <section class="cartao importar-conferir" aria-label="Conferir">
+          <div class="cartao-cabeca">
+            <span class="passo">2</span>
+            <h2>Confira antes de gravar</h2>
+          </div>
+          <div class="chips" id="impResumo"></div>
+          <div class="imp-lista" id="impLista"><p class="texto-mudo">Cole o espelho ao lado para conferir.</p></div>
+          <div class="linha-acoes">
+            <span class="texto-mudo pequeno">Dias que divergem do oficial aparecem em laranja, com o saldo do TiqueTaque ao lado.</span>
+            <button class="botao botao-primario" id="impGravar" type="button" disabled>Nada a gravar</button>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <!-- ==================== USUÁRIOS (admin) ==================== -->
+    <section class="tela" data-view="usuarios" aria-labelledby="usuariosTitulo" hidden>
+      <header class="cabecalho">
+        <div class="cabecalho-texto">
+          <h1 id="usuariosTitulo">Usuários</h1>
+          <p>Convide, mude o papel, desative ou reative. Cada usuário vê só o próprio ponto, inclusive você.</p>
+        </div>
+        <div class="cabecalho-acoes">
+          <button class="botao botao-secundario" id="usuariosAtualizar" type="button">Atualizar lista</button>
+        </div>
+      </header>
+
+      <div class="colunas">
+        <section class="cartao usuarios-lista" aria-label="Usuários cadastrados">
+          <div class="historico-rolagem">
+            <div class="usuarios-tabela">
+              <div class="linha-usuario cabeca-tabela">
+                <span>Nome</span><span>E-mail</span><span>Papel</span><span>Situação</span><span>Último acesso</span><span class="num">Ação</span>
+              </div>
+              <div id="usuariosCorpo"></div>
+            </div>
+          </div>
+          <p class="texto-mudo" id="usuariosEstado">Carregando…</p>
+        </section>
+
+        <aside class="cartao convite" aria-label="Convidar usuário">
+          <div class="cartao-cabeca">
+            <h2>Convidar</h2>
+            <span class="texto-mudo pequeno">o convidado define a senha pelo link do e-mail</span>
+          </div>
+          <form class="convite-campos" id="conviteForm" novalidate>
+            <label>Nome<input id="conviteNome" maxlength="100" autocomplete="off"></label>
+            <label>E-mail<input id="conviteEmail" type="email" maxlength="254" autocomplete="off" required></label>
+            <label>Papel
+              <select id="convitePapel">
+                <option value="usuario">Usuário</option>
+                <option value="admin">Admin</option>
+              </select>
+            </label>
+            <button class="botao botao-primario" id="conviteEnviar" type="submit">Enviar convite</button>
+            <span class="texto-mudo pequeno" id="conviteEstado" role="status"></span>
+          </form>
+        </aside>
+      </div>
+    </section>
+  </main>
+</div>
+</body>
+</html>

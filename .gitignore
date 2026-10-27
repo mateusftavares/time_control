@@ -1,0 +1,14 @@
+node_modules/
+.netlify/
+.env
+.env.*
+!.env.example
+*.db
+*.db-wal
+*.db-shm
+*.log
+supabase/.temp/
+supabase/.branches/
+
+# Segredos locais — nunca versionar
+secret.txt

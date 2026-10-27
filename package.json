@@ -1,0 +1,18 @@
+{
+  "name": "controle-pessoal-web",
+  "version": "1.0.0",
+  "description": "Ponto do dia, banco de horas e pomodoro 25/5 — site estático no Netlify + Supabase (Postgres + Auth)",
+  "type": "module",
+  "scripts": {
+    "test": "node --test",
+    "migrar": "node scripts/migrar-sqlite-para-supabase.js"
+  },
+  "engines": {
+    "node": ">=22.13"
+  },
+  "license": "UNLICENSED",
+  "private": true,
+  "dependencies": {
+    "@supabase/supabase-js": "2.45.4"
+  }
+}

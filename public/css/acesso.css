@@ -1,0 +1,118 @@
+/* Login e definição de senha: cartão de vidro sobre manchas de grafite desfocadas. */
+:root {
+  --fundo: #0E1015;
+  --acento: #8DB4E2;
+  --acento-claro: #A9C7EE;
+  --acento-texto: #0E1622;
+  --texto: #E7EAF2;
+  --texto-forte: #FFFFFF;
+  --texto-secundario: #A8B0C4;
+  --texto-mudo: #8891AA;
+  --erro-claro: #FCA5A5;
+  --erro-fundo: rgba(248, 113, 113, .12);
+  --positivo-claro: #86EFAC;
+  --positivo-fundo: rgba(74, 222, 128, .12);
+
+  --vidro: rgba(255, 255, 255, .055);
+  --vidro-borda: rgba(255, 255, 255, .14);
+  --vidro-campo: rgba(255, 255, 255, .04);
+  --vidro-campo-borda: rgba(255, 255, 255, .2);
+
+  --fonte: 'IBM Plex Sans', 'Segoe UI', sans-serif;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+body {
+  margin: 0; min-height: 100vh; min-height: 100dvh;
+  display: flex; align-items: center; justify-content: center; padding: 24px 16px;
+  background: var(--fundo); color: var(--texto); font: 15px/1.4 var(--fonte);
+  -webkit-font-smoothing: antialiased; overflow-x: hidden;
+}
+
+.manchas { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+.mancha { position: absolute; border-radius: 50%; filter: blur(70px); opacity: .9; animation: flutuar 26s ease-in-out infinite alternate; }
+.mancha-1 { width: 46vmax; height: 46vmax; left: -12vmax; top: -14vmax; background: radial-gradient(circle at 40% 40%, #3B414E, #1E222B 70%); }
+.mancha-2 { width: 38vmax; height: 38vmax; right: -10vmax; top: 8vh; background: radial-gradient(circle at 50% 50%, #2B303B, #161920 72%); animation-duration: 32s; }
+.mancha-3 { width: 42vmax; height: 42vmax; left: 18vw; bottom: -22vmax; background: radial-gradient(circle at 50% 40%, #4A505C, #23272F 70%); opacity: .55; animation-duration: 38s; }
+.mancha-4 { width: 22vmax; height: 22vmax; right: 16vw; bottom: 6vh; background: radial-gradient(circle, #5A6170, #2A2E37 70%); opacity: .35; animation-duration: 22s; }
+@keyframes flutuar {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to   { transform: translate3d(3vmax, -2vmax, 0) scale(1.08); }
+}
+
+.vidro {
+  position: relative; z-index: 1; width: 100%; max-width: 400px;
+  padding: 40px 36px 32px; border-radius: 26px;
+  background: var(--vidro); border: 1px solid var(--vidro-borda);
+  -webkit-backdrop-filter: blur(22px) saturate(140%); backdrop-filter: blur(22px) saturate(140%);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, .45), inset 0 1px 0 rgba(255, 255, 255, .08);
+}
+.vidro h1 { margin: 0 0 6px; text-align: center; font-size: 30px; font-weight: 700; letter-spacing: -.01em; color: var(--texto-forte); }
+.vidro .sub { margin: 0 0 26px; text-align: center; color: var(--texto-secundario); font-size: 14px; }
+
+.formulario { display: flex; flex-direction: column; gap: 18px; margin: 0; }
+
+.campo { position: relative; display: block; }
+.campo input {
+  width: 100%; height: 52px; padding: 0 52px 0 22px; border-radius: 999px;
+  background: var(--vidro-campo); border: 1.5px solid var(--vidro-campo-borda);
+  color: var(--texto-forte); font: 500 15px var(--fonte); outline: none;
+  transition: border-color .15s, background .15s, box-shadow .15s;
+}
+.campo input::placeholder { color: var(--texto-secundario); }
+.campo input:focus { border-color: var(--acento); background: rgba(141, 180, 226, .07); box-shadow: 0 0 0 3px rgba(141, 180, 226, .18); }
+.campo input:-webkit-autofill { -webkit-text-fill-color: var(--texto-forte); -webkit-box-shadow: 0 0 0 40px #1B1F27 inset; caret-color: var(--texto-forte); }
+.campo svg {
+  position: absolute; right: 20px; top: 50%; transform: translateY(-50%); width: 19px; height: 19px;
+  fill: none; stroke: var(--texto-secundario); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; pointer-events: none;
+}
+.campo input:focus + svg { stroke: var(--acento); }
+
+.opcoes { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: -4px; font-size: 13.5px; }
+.lembrar { display: flex; align-items: center; gap: 8px; color: var(--texto-secundario); cursor: pointer; }
+.lembrar input { width: 16px; height: 16px; margin: 0; accent-color: var(--acento); cursor: pointer; }
+.link {
+  border: 0; background: none; padding: 0; font: inherit; color: var(--texto); cursor: pointer; text-decoration: none;
+}
+.link:hover { color: var(--acento-claro); text-decoration: underline; }
+
+.botao-pilula {
+  height: 50px; border: 0; border-radius: 999px; cursor: pointer;
+  background: var(--acento); color: var(--acento-texto); font: 700 15.5px var(--fonte); letter-spacing: .01em;
+  box-shadow: 0 8px 24px rgba(141, 180, 226, .22); transition: background .15s, transform .1s;
+}
+.botao-pilula:hover:not(:disabled) { background: var(--acento-claro); }
+.botao-pilula:active:not(:disabled) { transform: translateY(1px); }
+.botao-pilula:disabled { opacity: .55; cursor: default; }
+
+:focus-visible { outline: 2px solid var(--acento); outline-offset: 3px; border-radius: 999px; }
+.campo input:focus-visible { outline: none; }
+
+.rodape { margin: 4px 0 0; text-align: center; font-size: 13.5px; color: var(--texto-secundario); }
+
+.mensagem { margin: 0; padding: 10px 14px; border-radius: 14px; font-size: 13.5px; text-align: center; }
+.mensagem:empty { display: none; }
+.mensagem.erro { color: var(--erro-claro); background: var(--erro-fundo); }
+.mensagem.ok { color: var(--positivo-claro); background: var(--positivo-fundo); }
+.mensagem.info { color: var(--texto); background: rgba(141, 180, 226, .1); }
+
+.marca { display: flex; justify-content: center; margin-bottom: 18px; }
+.marca span {
+  width: 44px; height: 44px; border-radius: 13px; background: var(--acento);
+  display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 22px rgba(141, 180, 226, .25);
+}
+.marca svg { width: 24px; height: 24px; fill: none; stroke: var(--acento-texto); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+@media (max-width: 420px) {
+  .vidro { padding: 32px 22px 26px; border-radius: 22px; }
+  .opcoes { flex-wrap: wrap; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mancha { animation: none; }
+  * { transition-duration: 1ms !important; }
+}
+.so-leitor { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

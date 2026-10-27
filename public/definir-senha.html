@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Definir senha · Controle Pessoal</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='4' fill='%238DB4E2'/%3E%3Ccircle cx='8' cy='8.6' r='4.2' fill='none' stroke='%230E1622' stroke-width='1.4'/%3E%3Cpath d='M8 6.6v2.2l1.3 1.2' fill='none' stroke='%230E1622' stroke-width='1.4' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="/css/acesso.css">
+  <script type="module" src="/js/definir-senha.js"></script>
+</head>
+<body>
+  <div class="manchas" aria-hidden="true">
+    <span class="mancha mancha-1"></span><span class="mancha mancha-2"></span>
+    <span class="mancha mancha-3"></span><span class="mancha mancha-4"></span>
+  </div>
+
+  <main class="vidro" aria-labelledby="definirTitulo">
+    <div class="marca" aria-hidden="true">
+      <span><svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l2.5 2.5"></path><path d="M9 2h6"></path></svg></span>
+    </div>
+    <h1 id="definirTitulo">Definir senha</h1>
+    <p class="sub" id="definirSub">Conferindo o link…</p>
+
+    <form class="formulario" id="formSenha" novalidate hidden>
+      <p class="mensagem" id="mensagemSenha" role="status" aria-live="polite"></p>
+
+      <label class="campo">
+        <span class="so-leitor">Nova senha</span>
+        <input type="password" id="novaSenha" placeholder="Nova senha (mín. 8 caracteres)" autocomplete="new-password" minlength="8" maxlength="72" required>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="7.5" cy="15.5" r="4.5"></circle><path d="M10.7 12.3L20 3"></path><path d="M16.5 6.5l2.5 2.5"></path><path d="M14 9l2 2"></path></svg>
+      </label>
+
+      <label class="campo">
+        <span class="so-leitor">Repita a senha</span>
+        <input type="password" id="confirmaSenha" placeholder="Repita a senha" autocomplete="new-password" maxlength="72" required>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10.5" width="14" height="10" rx="2.5"></rect><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"></path></svg>
+      </label>
+
+      <button class="botao-pilula" id="btnSalvarSenha" type="submit">Salvar senha</button>
+    </form>
+
+    <p class="mensagem" id="mensagemLink" role="alert"></p>
+    <p class="rodape" id="rodapeLink" hidden><a class="link" href="/login.html">Ir para o login</a></p>
+  </main>
+</body>
+</html>
