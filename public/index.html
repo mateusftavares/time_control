@@ -19,6 +19,7 @@
   <script type="module" src="/js/main.js"></script>
 </head>
 <body data-autenticando>
+<div class="manchas" aria-hidden="true"><i class="mancha mancha-1"></i><i class="mancha mancha-2"></i><i class="mancha mancha-3"></i><i class="mancha mancha-4"></i></div>
 <div class="shell">
 
   <main class="conteudo">
@@ -427,10 +428,21 @@
             <span class="texto-mudo pequeno estado" id="perfilEstado" role="status"></span>
           </section>
 
-          <section class="cartao" aria-labelledby="corTitulo">
-            <div class="cartao-cabeca"><h2 id="corTitulo">Cor de destaque</h2></div>
-            <div class="cores" id="corOpcoes" role="group" aria-labelledby="corTitulo"></div>
-            <span class="texto-mudo pequeno estado" id="corEstado" role="status"></span>
+          <section class="cartao aparencia" id="aparencia" aria-labelledby="aparenciaTitulo">
+            <div class="cartao-cabeca"><h2 id="aparenciaTitulo">Aparência</h2></div>
+            <div class="aparencia-grupo">
+              <span class="aparencia-rotulo" id="rotuloCor">Cor de destaque</span>
+              <div class="cores" data-preferencia="cor" role="group" aria-labelledby="rotuloCor"></div>
+            </div>
+            <div class="aparencia-grupo">
+              <span class="aparencia-rotulo" id="rotuloSuperficie">Cartões e barra de navegação</span>
+              <div class="segmentado" data-preferencia="superficie" role="group" aria-labelledby="rotuloSuperficie"></div>
+            </div>
+            <div class="aparencia-grupo">
+              <span class="aparencia-rotulo" id="rotuloFundo">Fundo da tela</span>
+              <div class="segmentado" data-preferencia="fundo" role="group" aria-labelledby="rotuloFundo"></div>
+            </div>
+            <span class="texto-mudo pequeno estado" id="aparenciaEstado" role="status"></span>
           </section>
 
           <section class="cartao" aria-label="Trocar senha">

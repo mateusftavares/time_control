@@ -4,7 +4,7 @@ import {
   COLUNAS_DIAS, COLUNAS_JORNADAS, paraRegistro, paraLinha, umPorDia, paraJornada, linhaDeJornada,
 } from '/shared/linhas.js';
 import { normalizarJornada } from '/shared/jornada.js';
-import { corValida } from './cor.js';
+import { PREFERENCIAS, opcaoValida } from './aparencia.js';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js';
 import { supabase } from './supabase.js';
 import { idDoUsuario, tokenAtual, sair } from './sessao.js';
@@ -203,12 +203,19 @@ async function salvarNome(nome) {
   return limpo;
 }
 
-async function salvarCorDestaque(cor) {
-  if (!corValida(cor)) {
-    throw new ErroApi('cor de destaque inválida', 400);
+/**
+ * @description Grava uma preferência de aparência (cor, superficie ou fundo) no perfil
+ * @param {string} chave
+ * @param {string} valor
+ * @returns {Promise<string>}
+ */
+async function salvarPreferencia(chave, valor) {
+  if (!opcaoValida(chave, valor)) {
+    throw new ErroApi('opção de aparência inválida', 400);
   }
-  await executar(supabase.from('perfis').update({ cor_destaque: cor }).eq('id', exigirUsuario()));
-  return cor;
+  const { coluna } = PREFERENCIAS[chave];
+  await executar(supabase.from('perfis').update({ [coluna]: valor }).eq('id', exigirUsuario()));
+  return valor;
 }
 
 const caminhoDaFoto = (userId) => `${userId}/avatar.jpg`;
@@ -264,7 +271,7 @@ export const api = {
   salvarJornada,
   apagarJornada,
   salvarNome,
-  salvarCorDestaque,
+  salvarPreferencia,
   enviarFoto,
   removerFoto,
   urlDaFoto,

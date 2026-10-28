@@ -7,7 +7,7 @@ import { api } from './api.js';
 import { supabase } from './supabase.js';
 import * as store from './registros.js';
 import { elementos } from './util.js';
-import { CORES_DE_DESTAQUE, aplicarCor } from './cor.js';
+import { PREFERENCIAS, aplicarPreferencia } from './aparencia.js';
 
 const TAMANHO_MAXIMO_DA_FOTO = 2 * 1024 * 1024;
 const TIPOS_DE_FOTO = ['image/jpeg', 'image/png', 'image/webp'];
@@ -24,7 +24,7 @@ const EXPLICACAO_DO_MODO = {
 const el = elementos([
   'navAvatar', 'perfilAvatar', 'perfilSub', 'fotoArquivo', 'fotoRemover',
   'formNome', 'perfilNome', 'nomeSalvar', 'perfilEstado',
-  'corOpcoes', 'corEstado',
+  'aparencia', 'aparenciaEstado',
   'formTrocarSenha', 'senhaUsuario', 'senhaAtual', 'senhaNova', 'senhaConfirma', 'senhaSalvar', 'senhaEstado',
   'jornadaNova', 'jornadaVersoes', 'formJornada', 'jornadaDesde', 'jornadaDias', 'tolAntes', 'tolDepois',
   'modoTolerancia', 'modoExplicacao', 'jornadaApagar', 'jornadaEstado', 'jornadaSalvar',
@@ -135,46 +135,55 @@ async function salvarNome(evento) {
   }
 }
 
-/* ---------- cor de destaque ---------- */
+/* ---------- aparência: cor de destaque, cartões e fundo ---------- */
 
-function pintarCores() {
-  el.corOpcoes.querySelectorAll('[data-cor]').forEach((botao) => {
-    botao.setAttribute('aria-pressed', String(botao.dataset.cor === perfil.corDestaque));
+const grupoDaPreferencia = (chave) => el.aparencia.querySelector(`[data-preferencia="${chave}"]`);
+
+function pintarPreferencia(chave) {
+  grupoDaPreferencia(chave).querySelectorAll('button').forEach((botao) => {
+    botao.setAttribute('aria-pressed', String(botao.dataset.valor === perfil.aparencia[chave]));
   });
 }
 
-function montarCores() {
-  el.corOpcoes.replaceChildren(...CORES_DE_DESTAQUE.map(({ valor, nome }) => {
-    const botao = document.createElement('button');
+function botaoDeOpcao(chave, { valor, nome }) {
+  const botao = document.createElement('button');
+  botao.type = 'button';
+  botao.dataset.valor = valor;
+  if (chave === 'cor') {
     const amostra = document.createElement('span');
-    botao.type = 'button';
     botao.className = 'cor-opcao';
-    botao.dataset.cor = valor;
     amostra.className = 'cor-amostra';
     amostra.setAttribute('aria-hidden', 'true');
-    botao.append(amostra, nome);
-    botao.addEventListener('click', () => trocarCor(valor));
-    return botao;
-  }));
-  pintarCores();
+    botao.append(amostra);
+  }
+  botao.append(nome);
+  botao.addEventListener('click', () => trocarPreferencia(chave, valor));
+  return botao;
 }
 
-async function trocarCor(cor) {
-  if (cor === perfil.corDestaque) {
+function montarAparencia() {
+  Object.entries(PREFERENCIAS).forEach(([chave, { opcoes }]) => {
+    grupoDaPreferencia(chave).replaceChildren(...opcoes.map((opcao) => botaoDeOpcao(chave, opcao)));
+    pintarPreferencia(chave);
+  });
+}
+
+async function trocarPreferencia(chave, valor) {
+  const anterior = perfil.aparencia[chave];
+  if (valor === anterior) {
     return;
   }
-  const anterior = perfil.corDestaque;
-  perfil.corDestaque = cor;
-  aplicarCor(cor);
-  pintarCores();
+  perfil.aparencia[chave] = valor;
+  aplicarPreferencia(chave, valor);
+  pintarPreferencia(chave);
   try {
-    await api.salvarCorDestaque(cor);
-    estado(el.corEstado, 'Cor salva.', 'ok');
+    await api.salvarPreferencia(chave, valor);
+    estado(el.aparenciaEstado, 'Aparência salva.', 'ok');
   } catch (erro) {
-    perfil.corDestaque = anterior;
-    aplicarCor(anterior);
-    pintarCores();
-    estado(el.corEstado, `Não foi possível salvar a cor: ${erro.message}.`, 'erro');
+    perfil.aparencia[chave] = anterior;
+    aplicarPreferencia(chave, anterior);
+    pintarPreferencia(chave);
+    estado(el.aparenciaEstado, `Não foi possível salvar a aparência: ${erro.message}.`, 'erro');
   }
 }
 
@@ -419,14 +428,14 @@ export async function carregarJornadas() {
  * @param {{id: string, nome: string, email: string, avatarPath: string|null}} dados
  */
 export function iniciarPerfil(dados) {
-  perfil = { ...dados };
+  perfil = { ...dados, aparencia: { ...dados.aparencia } };
   el.perfilSub.textContent = perfil.email;
   el.perfilNome.value = perfil.nome;
   el.senhaUsuario.value = perfil.email;
   pintarAvatar(el.navAvatar, null);
   pintarAvatar(el.perfilAvatar, null);
   pintarFotos();
-  montarCores();
+  montarAparencia();
 
   el.fotoArquivo.addEventListener('change', trocarFoto);
   el.fotoRemover.addEventListener('click', removerFoto);

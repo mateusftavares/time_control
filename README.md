@@ -1,243 +1,58 @@
-# Controle Pessoal (web)
+# TimEver
 
-Ponto do dia, banco de horas e pomodoro 25/5, agora na web: **site estático no Netlify + Supabase (Postgres + Auth)**. É a versão web do [controle_pessoal](https://github.com/mateusfitavares/controle_pessoal) (Node + SQLite local). As telas e as regras são as mesmas.
+Ponto do dia, banco de horas e pomodoro, na web. O nome junta *time* e *ever*.
 
-- **Hoje**, **Banco de horas**, **Importar TiqueTaque** e **Pomodoro** funcionam como no app local.
-- **Login** por e-mail e senha. Não há cadastro público: o admin convida.
-- **Cada usuário vê só os próprios dados**, inclusive o admin. Quem garante isso é a RLS do Postgres, não o front.
-- **Usuários** (só admin): convidar, mudar o papel (`admin`/`usuario`), desativar e reativar.
-- **Meu perfil:** nome, foto, troca de senha e a **jornada com tolerância**, por vigência.
-- **Navegação:** uma cápsula flutuante embaixo (Hoje, Banco, Importar, Usuários, Perfil). O resumo que ficava na barra lateral agora fica num cabeçalho compacto no topo de todas as telas: banco acumulado, mês, dias sem marcação, saída prevista e mini pomodoro.
+- **No ar:** https://timever.netlify.app
+- **Stack:** site estático (HTML, CSS e JavaScript em módulos ES, sem build) no Netlify, com Postgres, Auth e Storage no Supabase.
+- **Acesso:** só por convite do admin. Cada usuário vê apenas os próprios dados, inclusive o admin, e quem garante isso é a RLS do Postgres.
+- **Origem:** versão web do app local [controle_pessoal](https://github.com/mateusfitavares/controle_pessoal) (Node + SQLite), com as mesmas regras.
 
-## Arquitetura
+## O que o app faz
 
-```
-navegador ──(supabase-js, anon key + JWT do usuário)──▶ Supabase: Postgres com RLS + Auth
-    │
-    └──(POST /api/usuarios, JWT)──▶ Netlify Function usuarios.mjs ──(service role)──▶ Supabase Admin API
-```
-
-- O front fala direto com o Supabase. A **anon/publishable key** é pública por design: ela só dá o que as policies de RLS permitem.
-- A **service role** (que ignora a RLS) fica **só** na variável de ambiente da função do Netlify. Ela nunca vai para o front nem para o repositório.
-- `public/js/api.js` mantém a interface da antiga API do Express (`listarDias`, `salvarDia`, `apagarDia`, `gravarLote`, `lerPomodoro`, `salvarPomodoro`). As telas não mudaram.
-
-## Passo a passo
-
-### 1. Supabase: projeto e banco
-
-1. Crie o projeto em [supabase.com](https://supabase.com) na região **South America (São Paulo)**. Guarde a senha do banco.
-2. Em **Project Settings → API**, anote:
-   - a **Project URL** (`https://<ref>.supabase.co`);
-   - a **anon/publishable key** (vai para o front);
-   - a **service_role/secret key** (vai **só** para o Netlify).
-3. Aplique a migração pela pasta do projeto (PowerShell):
-
-   ```powershell
-   npx supabase login
-   npx supabase init          # cria supabase/config.toml; a pasta migrations/ é mantida
-   npx supabase link --project-ref <ref>
-   npx supabase db push       # aplica as migrações de supabase/migrations/, em ordem
-   ```
-
-   | Migração | O que faz |
-   |---|---|
-   | `20261027120000_inicial.sql` | `perfis`, `dias` e `pomodoro`, a RLS de todas as tabelas, o trigger que cria o perfil de cada usuário novo e a trava que impede ficar sem admin ativo |
-   | `20261027180000_jornadas.sql` | tabela `jornadas` (vigência + semana + tolerância), a RLS dela, a semeadura das vigências equivalentes às regras antigas e o congelamento da carga dos dias sem carga |
-   | `20261027180100_perfil_e_avatares.sql` | update só de `nome` e `avatar_path` no próprio perfil, e o bucket privado `avatares` (2 MB, JPEG/PNG/WebP) com policies por pasta `<uid>/` |
-
-### 2. Supabase: Auth
-
-Em **Authentication**:
-
-| Onde | O que fazer |
+| Tela | Resumo |
 |---|---|
-| Sign In / Providers → **Allow new users to sign up** | **Desligar.** O convite do admin continua funcionando. |
-| Sign In / Providers → Email → **Minimum password length** | 8 (a tela de senha já exige 8) |
-| URL Configuration → **Site URL** | `https://<seu-site>.netlify.app` |
-| URL Configuration → **Redirect URLs** | `https://<seu-site>.netlify.app/definir-senha.html`, `http://localhost:8888/definir-senha.html` e `http://localhost:8080/definir-senha.html` |
-| Emails → **SMTP Settings** | Configure um SMTP próprio (Resend, Brevo, Gmail etc.). O SMTP embutido do Supabase só entrega para os e-mails da equipe do projeto e tem limite de poucas mensagens por hora. Sem SMTP próprio, os convites para outras pessoas não chegam. |
-| Emails → Templates → **Invite user** | Use o modelo em pt-BR abaixo |
-| Emails → Templates → **Reset password** | Use o modelo em pt-BR abaixo |
+| **Hoje** | Bater ponto (botão ou Enter), previsão de saída com almoço mínimo de 1 h, linha do dia e correção das marcações. |
+| **Banco de horas** | Saldo acumulado, gráfico do saldo por mês, histórico por mês e editor de dia (feriado, folga, compensação). |
+| **Importar** | Lê o espelho do TiqueTaque colado e confere cada dia contra o saldo oficial antes de gravar. |
+| **Pomodoro** | Popup no topo: foco de 25 min, descanso de 5 min e longo de 10 min, com pausas por motivo. |
+| **Usuários** (admin) | Convidar, mudar o papel, desativar e reativar. |
+| **Meu perfil** | Nome, foto, aparência (cor, vidro e fundo), senha e jornada com tolerância por vigência. |
 
-**Convite.** Assunto: `Você foi convidado para o Controle Pessoal`
+O app pode ser instalado no celular pelo navegador (no iPhone: Safari → Compartilhar → Adicionar à Tela de Início).
 
-```html
-<h2>Você foi convidado para o Controle Pessoal</h2>
-<p>Olá! Um administrador criou um acesso para você no Controle Pessoal (ponto, banco de horas e pomodoro).</p>
-<p><a href="{{ .ConfirmationURL }}">Definir minha senha e entrar</a></p>
-<p>O link vale por 24 horas e só pode ser usado uma vez. Se você não esperava este convite, ignore este e-mail.</p>
-```
-
-**Recuperação.** Assunto: `Defina uma nova senha do Controle Pessoal`
-
-```html
-<h2>Nova senha</h2>
-<p>Recebemos um pedido para trocar a senha da sua conta no Controle Pessoal.</p>
-<p><a href="{{ .ConfirmationURL }}">Definir uma nova senha</a></p>
-<p>Se não foi você, ignore este e-mail: sua senha continua a mesma.</p>
-```
-
-### 3. Front: a configuração pública
-
-Em `public/js/config.js`, troque os placeholders pela **Project URL** e pela **anon/publishable key**. Em `netlify.toml`, troque `SEU-PROJETO` pelo `<ref>` na linha da CSP (`connect-src`). Sem isso, o navegador bloqueia as chamadas ao Supabase.
-
-### 4. GitHub e Netlify
-
-1. Crie um repositório **privado** no GitHub (sugestão: `controle_pessoal_web`), faça o commit e o push.
-2. No Netlify, clique em **Add new site → Import an existing project**, escolha o repositório e deixe o build vazio. O `netlify.toml` já diz `publish = "public"` e `functions = "netlify/functions"`.
-3. Em **Site configuration → Environment variables**, crie:
-
-   | Variável | Valor | Escopo |
-   |---|---|---|
-   | `SUPABASE_URL` | `https://<ref>.supabase.co` | Functions |
-   | `SUPABASE_SERVICE_ROLE_KEY` | a service_role/secret key | Functions, marcada como **secret** |
-   | `SITE_URL` (opcional) | `https://<seu-site>.netlify.app` | Functions. Base do link do convite; sem ela, vale a `URL` que o Netlify define. |
-
-4. Faça um novo deploy para as variáveis valerem. Se o nome do site mudou, atualize a Site URL e as Redirect URLs do passo 2.
-
-### 5. Primeiro admin
-
-1. No Supabase, vá a **Authentication → Users → Invite user** e informe o seu e-mail. O trigger cria o perfil como `usuario`.
-2. Abra o link do e-mail. O app leva você para **Definir senha**.
-3. No **SQL Editor**, promova o seu usuário:
-
-   ```sql
-   update public.perfis set papel = 'admin' where email = 'seu@email.com';
-   ```
-
-4. Entre de novo. O item **Usuários** aparece na barra lateral. Os próximos convites saem de lá.
-
-### 6. Migrar os dados do app local
-
-Os dados atuais vão para o usuário admin (ou para quem você indicar). O usuário precisa existir antes, ou seja, o convite tem de ter sido aceito.
-
-1. Tire uma cópia consistente do banco do volume Docker `controle-pessoal-dados`, na pasta do projeto **antigo** (PowerShell):
-
-   ```powershell
-   cd C:\leverpro\controle-pessoal
-   docker compose exec controle-pessoal npm run backup -- /tmp/migracao
-   docker compose exec controle-pessoal sh -c "ls /tmp/migracao"
-   docker compose cp controle-pessoal:/tmp/migracao/<arquivo>.db $env:TEMP\controle.db
-   docker compose exec -u root controle-pessoal rm -rf /tmp/migracao
-   ```
-
-   O `backup` usa `VACUUM INTO`: a cópia é consistente mesmo com o app rodando. Copiar o `.db` direto pode perder o que ainda está no `-wal`.
-
-2. Neste projeto, crie o `.env` a partir do `.env.example`, com `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY`. Ele é ignorado pelo git, como qualquer arquivo de segredo local. Depois rode:
-
-   ```powershell
-   npm install
-   npm run migrar -- $env:TEMP\controle.db --usuario seu@email.com
-   npm run migrar -- $env:TEMP\controle.db --usuario seu@email.com --conferir
-   Remove-Item $env:TEMP\controle.db
-   ```
-
-   - Sem `--sobrescrever`, os dias que já existem no Supabase ficam como estão. Com ele, são substituídos.
-   - `--conferir` não grava nada. Ele recalcula o banco de horas com as regras de `shared/` dos dois lados e compara o acumulado, o saldo por mês e os dias campo a campo. Sai com código 0 se bater e 2 se divergir.
-   - Dias inválidos (que a validação do app recusaria) são listados e ficam de fora.
-
-## Rodar localmente
-
-- **Completo, com a tela de Usuários:** `npx netlify dev`, em <http://localhost:8888>. Ele serve `public/`, aplica os headers do `netlify.toml` e roda a função. As variáveis vêm do site vinculado (`npx netlify link`) ou do `.env`.
-- **Só o app, sem a função de admin:** `npx http-server public -p 8080 -c-1`, em <http://localhost:8080>. Ponto, banco e pomodoro funcionam. A tela de Usuários dá erro, porque não há `/api/usuarios`.
-
-O localhost usa o mesmo projeto Supabase e os seus dados reais. Para testar sem risco, crie um segundo projeto Supabase e aponte o `config.js` para ele.
+## Começo rápido
 
 ```powershell
-npm test     # regras, espelho, validação de usuários, mapeamento e conferência
+npm install
+npm test            # regras de cálculo, leitura do espelho, usuários
+npx netlify dev     # app completo em http://localhost:8888
 ```
 
-## Segurança
+O localhost usa o **mesmo Supabase de produção**, com os dados reais.
 
-- **RLS em todas as tabelas.** `dias` e `pomodoro` só aceitam `user_id = auth.uid()` com o perfil **ativo**: um usuário desativado perde o acesso aos dados na hora, mesmo com um token ainda válido. `perfis` é só leitura pelo cliente (o próprio perfil; o admin lê todos). Papel e ativo só mudam pela função (service role) ou pelo SQL Editor.
-- **Desativar** marca `ativo = false` e bane o login (`ban_duration`), o que impede a renovação do token. **Reativar** desfaz as duas coisas. Os dados ficam guardados.
-- **Último admin:** a função recusa a mudança, e o trigger `manter_um_admin` também recusa. Isso fecha a corrida entre dois admins e vale até para o SQL Editor e para apagar o usuário no dashboard.
-- **CSP** no `netlify.toml`: scripts só do próprio site e do jsDelivr (supabase-js com versão fixada), conexões só com o próprio site e o Supabase, sem `unsafe-inline`, sem iframes.
-- **Sessão:** com "Lembrar de mim", a sessão fica no `localStorage` e sobrevive ao fechar o navegador. Sem ele, fica no `sessionStorage` e some ao fechar a aba.
-- A tela de Usuários monta nomes e e-mails com `textContent`, nunca com `innerHTML`.
-- **Perfil:** o cliente só tem update nas colunas `nome` e `avatar_path` do próprio perfil (privilégio por coluna + policy). Papel e ativo seguem fechados.
-- **Fotos:** ficam no bucket **privado** `avatares`, em `<uid>/avatar.jpg`, e só o dono lê, grava e apaga a própria pasta. Elas aparecem por **URL assinada** de 1 hora. Num bucket público, qualquer um com o endereço veria a foto, e isso contraria a regra de cada usuário ver só os próprios dados. O navegador recorta a foto e a redesenha em JPEG 256×256, o que tira o EXIF (que pode ter a localização). O bucket recusa SVG e arquivos acima de 2 MB.
-- **Troca de senha:** o supabase-js 2.45 não confere a senha atual. A tela faz antes um login com a senha atual, e só depois chama o `updateUser`.
+## Documentação
+
+Tudo sobre como o projeto foi construído e funciona está em [`docs/`](docs/README.md):
+
+- [Arquitetura](docs/arquitetura.md): peças, módulos, fluxo de inicialização e segurança
+- [Banco de dados](docs/banco-de-dados.md): tabelas, RLS, triggers, storage e migrações
+- [Telas](docs/telas.md): o que cada tela faz e qual arquivo cuida dela
+- [Regras de negócio](docs/regras-de-negocio.md): banco de horas, jornada, tolerância, importação e pomodoro
+- [Visual e aparência](docs/visual-e-aparencia.md): tokens, cor, vidro, fundo, marca e instalação como app
+- [Operação](docs/operacao.md): segredos, rodar local, publicar, migrações, Auth e e-mail, scripts e testes
 
 ## Estrutura
 
 ```
-public/                 o site publicado
-  index.html            app (Hoje, Banco de horas, Importar, Usuários)
-  login.html            login em cartão de vidro + "esqueci a senha"
-  definir-senha.html    destino dos links de convite e de recuperação
-  css/app.css, css/acesso.css
-  js/
-    config.js           URL do Supabase e anon key (públicas)
-    supabase.js         cliente supabase-js + armazenamento da sessão ("Lembrar de mim")
-    sessao.js           sessão, perfil, sair
-    api.js              mesma interface da API antiga, agora sobre o Supabase
-    usuarios.js         tela de Usuários (admin) → /api/usuarios
-    perfil.js           Meu perfil: nome, foto, senha e jornada
-    login.js, definir-senha.js, acesso.js, hash-inicial.js
-    main.js, navegacao.js, registros.js, ponto.js, mes.js, importacao.js, pomodoro.js, ...
-  shared/               regras isomórficas + jornada.js (vigências e tolerância) + linhas.js (camelCase ↔ snake_case)
-netlify/functions/usuarios.mjs   POST /api/usuarios: listar, convidar, alterarPapel, desativar, reativar
-src/regras-usuarios.js           validação dos pedidos e regra do último admin (funções puras)
-scripts/
-  migrar-sqlite-para-supabase.js
-  conferir-jornadas.js           regra antiga × jornada por vigência, com os dados do Supabase
-  conferencia.js                 banco de horas e diferenças, para as conferências
-  regras-legado.js               regras fixas antigas, congeladas, e as vigências equivalentes
-  supabase-admin.js              cliente de serviço e leituras usadas pelos scripts
-supabase/migrations/             schema, RLS, triggers
-test/                            node --test
+public/                  o site publicado (index, login, definir-senha, manifest)
+  css/                   app.css (app) e acesso.css (login)
+  js/                    módulos das telas, sessão, API e aparência
+  shared/                regras de cálculo puras, usadas também pelos scripts e testes
+  img/                   logo SVG e ícones PNG do app
+netlify/functions/       usuarios.mjs: única peça com a service role
+src/regras-usuarios.js   validação dos pedidos da função de usuários
+supabase/migrations/     schema, RLS e triggers
+scripts/                 migração do app antigo e conferências do banco de horas
+test/                    node --test
+docs/                    documentação
 ```
-
-## Regras do banco de horas
-
-Ficam em `public/shared/regras.js` e `public/shared/jornada.js`. Valem para todos: almoço mínimo de 1h (descontado mesmo se marcado a menos), feriado e folga com saldo zero, compensação consumindo a carga do dia. **A jornada e a tolerância são de cada usuário**, configuradas em **Meu perfil**.
-
-### Jornada por vigência
-
-Cada usuário tem versões de jornada, cada uma com **"válida a partir de"**. Um dia é calculado com a versão de maior vigência que não passa da data dele. Antes da primeira versão (ou sem nenhuma), vale o **padrão**: seg–sex 08:00–12:00 e 13:00–17:00 (08:00 por dia), tolerância de 10/10 min, acumulativa. É o modelo do app desde março/2026.
-
-Uma versão define, para cada dia da semana:
-- se tem expediente;
-- os horários oficiais de entrada, saída para o almoço, volta e saída.
-
-A **carga do dia** sai desses horários: da entrada à saída, menos o almoço oficial. Dia sem expediente tem carga zero (tudo o que for trabalhado é saldo positivo) e, sem registro, não conta como "sem marcação". O dia que tem a carga gravada no registro usa a gravada: é o campo "Jornada do dia" da tela Hoje.
-
-Para mudar a jornada daqui para a frente, crie uma **nova vigência**. Editar ou apagar uma vigência antiga recalcula os dias dela, e o app pede confirmação.
-
-### Tolerância: dois modos
-
-A versão tem **tolerância antes** e **tolerância depois**, em minutos, de 0 a 120. A diferença que passa do limite conta **inteira**, sem abater a tolerância (11 min de atraso valem 11).
-
-| Modo | Como funciona |
-|---|---|
-| **Acumulativo** (o de sempre) | Saldo do dia = trabalhado − carga. Se o saldo for negativo e estiver a até **antes** minutos de zero, ou positivo a até **depois** minutos, vira zero. "Antes" é o lado de quem parou antes de cumprir a carga; "depois", o de quem passou dela. |
-| **Individual** | Cada marcação (entrada, saída p/ almoço, volta, saída) é comparada com o horário oficial do dia. Se ela estiver até **antes** minutos adiantada ou até **depois** minutos atrasada, vale o horário oficial; senão, vale o horário batido. O saldo é o trabalhado com as marcações ajustadas menos a carga, sem tolerância extra sobre o dia. O "trabalhado" mostrado continua sendo o real. Em dia sem expediente não há horário oficial, então nada é ajustado. |
-
-Exemplo, com expediente 08:00–12:00/13:00–17:00 e tolerância 10/10:
-
-| Marcações | Acumulativo | Individual |
-|---|---|---|
-| 08:15 … 17:20 | +5 no dia, dentro: **00:00** | nenhuma marcação a até 10 min: **+00:05** |
-| 07:52 … 17:09 | +17 no dia, fora: **+00:17** | as duas dentro, valem 08:00 e 17:00: **00:00** |
-
-### Como o histórico ficou igual
-
-A migração `20261027180000_jornadas.sql` faz duas coisas:
-
-1. **Semeia** para cada usuário existente as versões equivalentes às regras fixas antigas:
-   - desde 2026-02-01: seg–sex 08:00–12:00/13:00–17:48 (08:48);
-   - desde 2026-03-01: 08:00–12:00/13:00–17:00 (08:00).
-
-   As duas são acumulativas, com tolerância de 10/10.
-2. **Congela a carga.** Grava em todo dia `normal` ou `compensacao` sem carga a carga que a regra antiga dava: 08:48 antes de março/2026 e 08:00 depois. A regra antiga dava 08:48/08:00 também em sábado, domingo e antes de fevereiro, onde a nova daria 0 ou o padrão. Com a carga gravada, o resultado não muda.
-
-O teste `test/jornada.test.js` compara as duas regras em cerca de 2 mil dias gerados (fevereiro a dezembro/2026, marcações em volta dos limites da tolerância, com e sem carga gravada, todos os tipos). Ele confere também os dias úteis e o início do histórico. A regra antiga, congelada, está em `scripts/regras-legado.js`.
-
-Para conferir com os dados reais (não grava nada):
-
-```powershell
-npm run conferir-jornadas -- --usuario seu@email.com --esperado=-01:51
-```
-
-O script compara o acumulado, o saldo de cada mês e de cada dia e os dias sem marcação, e lista os dias que ainda estejam sem carga. Sai com código 0 se o histórico for idêntico e 2 se divergir.
