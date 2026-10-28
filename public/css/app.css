@@ -85,7 +85,7 @@ kbd { font-family: var(--fonte-mono); }
 .shell { min-height: 100vh; min-height: 100dvh; }
 .conteudo {
   max-width: 1320px; margin: 0 auto; min-width: 0;
-  padding: 20px 32px calc(118px + env(safe-area-inset-bottom));
+  padding: calc(20px + env(safe-area-inset-top)) 32px calc(118px + env(safe-area-inset-bottom));
   display: flex; flex-direction: column; gap: 22px;
 }
 
@@ -505,7 +505,7 @@ kbd { font-family: var(--fonte-mono); }
 
 /* ---------- celular: no fim do arquivo para valer sobre as regras de cima ---------- */
 @media (max-width: 791px) {
-  .conteudo { padding: 14px 16px calc(104px + env(safe-area-inset-bottom)); gap: 18px; }
+  .conteudo { padding: calc(14px + env(safe-area-inset-top)) 16px calc(104px + env(safe-area-inset-bottom)); gap: 18px; }
   .topo { gap: 12px; }
   .resumo { width: 100%; overflow-x: auto; scrollbar-width: none; }
   .resumo::-webkit-scrollbar { display: none; }
