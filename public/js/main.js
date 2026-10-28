@@ -11,6 +11,7 @@ import { iniciarPomodoro, gravarPomodoroAoSair } from './pomodoro.js';
 import { iniciarUsuarios } from './usuarios.js';
 import { iniciarPerfil, carregarJornadas } from './perfil.js';
 import { mostrarAviso, avisoDeFalha } from './aviso.js';
+import { aplicarCor, COR_PADRAO } from './cor.js';
 
 const el = elementos(['btnSair', 'menuUsuarios']);
 
@@ -73,6 +74,7 @@ async function iniciar() {
     return;
   }
 
+  aplicarCor(perfil?.cor_destaque);
   document.body.removeAttribute('data-autenticando');
   if (perfil?.papel === 'admin') {
     liberarTela('usuarios');
@@ -96,6 +98,7 @@ async function iniciar() {
     nome: perfil?.nome ?? '',
     email: perfil?.email || sessao.user.email,
     avatarPath: perfil?.avatar_path ?? null,
+    corDestaque: perfil?.cor_destaque ?? COR_PADRAO,
   });
   iniciarPonto();
   iniciarMes();

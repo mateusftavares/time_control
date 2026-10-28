@@ -25,7 +25,7 @@ const el = elementos([
   'totalPendentes', 'capPendentes', 'mesCorpo', 'mesEstado',
   'editor', 'diaTitulo', 'diaFechar', 'tipoGrid', 'diaMarcacoes', 'dChegada', 'dAlmocoIni', 'dAlmocoFim', 'dSaida',
   'previaTrabalhado', 'previaSaldo', 'previaNota', 'diaSalvar', 'diaApagar',
-  'ladoBanco', 'ladoMes', 'ladoPendentes', 'hojeBanco', 'hojeBancoCap', 'grafico', 'graficoMeses',
+  'ladoBanco', 'ladoMes', 'ladoPendentes', 'grafico', 'graficoMeses',
 ]);
 
 const mesesAbertos = new Set([hoje().slice(0, 7)]);
@@ -205,8 +205,6 @@ function pintarResumos(meses, totaisPorMes) {
   el.ladoPendentes.textContent = pendentes ? `${pendentes} dia(s)` : 'nenhum';
   el.ladoPendentes.className = pendentes ? 'cor-erro' : 'cor-positivo';
 
-  pintarValor(el.hojeBanco, banco);
-  el.hojeBancoCap.textContent = `acumulado desde ${nomeDoMes(meses[meses.length - 1])}`;
   pintarGrafico(meses, totaisPorMes);
 }
 

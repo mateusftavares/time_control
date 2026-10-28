@@ -7,6 +7,7 @@ import { api } from './api.js';
 import { supabase } from './supabase.js';
 import * as store from './registros.js';
 import { elementos } from './util.js';
+import { CORES_DE_DESTAQUE, aplicarCor } from './cor.js';
 
 const TAMANHO_MAXIMO_DA_FOTO = 2 * 1024 * 1024;
 const TIPOS_DE_FOTO = ['image/jpeg', 'image/png', 'image/webp'];
@@ -23,6 +24,7 @@ const EXPLICACAO_DO_MODO = {
 const el = elementos([
   'navAvatar', 'perfilAvatar', 'perfilSub', 'fotoArquivo', 'fotoRemover',
   'formNome', 'perfilNome', 'nomeSalvar', 'perfilEstado',
+  'corOpcoes', 'corEstado',
   'formTrocarSenha', 'senhaUsuario', 'senhaAtual', 'senhaNova', 'senhaConfirma', 'senhaSalvar', 'senhaEstado',
   'jornadaNova', 'jornadaVersoes', 'formJornada', 'jornadaDesde', 'jornadaDias', 'tolAntes', 'tolDepois',
   'modoTolerancia', 'modoExplicacao', 'jornadaApagar', 'jornadaEstado', 'jornadaSalvar',
@@ -130,6 +132,49 @@ async function salvarNome(evento) {
     estado(el.perfilEstado, `Não foi possível salvar o nome: ${erro.message}.`, 'erro');
   } finally {
     el.nomeSalvar.disabled = false;
+  }
+}
+
+/* ---------- cor de destaque ---------- */
+
+function pintarCores() {
+  el.corOpcoes.querySelectorAll('[data-cor]').forEach((botao) => {
+    botao.setAttribute('aria-pressed', String(botao.dataset.cor === perfil.corDestaque));
+  });
+}
+
+function montarCores() {
+  el.corOpcoes.replaceChildren(...CORES_DE_DESTAQUE.map(({ valor, nome }) => {
+    const botao = document.createElement('button');
+    const amostra = document.createElement('span');
+    botao.type = 'button';
+    botao.className = 'cor-opcao';
+    botao.dataset.cor = valor;
+    amostra.className = 'cor-amostra';
+    amostra.setAttribute('aria-hidden', 'true');
+    botao.append(amostra, nome);
+    botao.addEventListener('click', () => trocarCor(valor));
+    return botao;
+  }));
+  pintarCores();
+}
+
+async function trocarCor(cor) {
+  if (cor === perfil.corDestaque) {
+    return;
+  }
+  const anterior = perfil.corDestaque;
+  perfil.corDestaque = cor;
+  aplicarCor(cor);
+  pintarCores();
+  try {
+    await api.salvarCorDestaque(cor);
+    estado(el.corEstado, 'Cor salva.', 'ok');
+  } catch (erro) {
+    perfil.corDestaque = anterior;
+    aplicarCor(anterior);
+    pintarCores();
+    estado(el.corEstado, `Não foi possível salvar a cor: ${erro.message}.`, 'erro');
   }
 }
 
@@ -381,6 +426,7 @@ export function iniciarPerfil(dados) {
   pintarAvatar(el.navAvatar, null);
   pintarAvatar(el.perfilAvatar, null);
   pintarFotos();
+  montarCores();
 
   el.fotoArquivo.addEventListener('change', trocarFoto);
   el.fotoRemover.addEventListener('click', removerFoto);

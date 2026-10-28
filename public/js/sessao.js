@@ -53,7 +53,7 @@ export function idDoUsuario() {
  */
 export async function carregarPerfil() {
   const { data, error } = await supabase
-    .from('perfis').select('id, nome, email, papel, ativo, avatar_path').eq('id', idDoUsuario()).maybeSingle();
+    .from('perfis').select('id, nome, email, papel, ativo, avatar_path, cor_destaque').eq('id', idDoUsuario()).maybeSingle();
   if (error) {
     throw error;
   }

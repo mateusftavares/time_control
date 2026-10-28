@@ -4,7 +4,7 @@ import { api } from './api.js';
 import { elementos, escapar, textoComDestaque, teclaLimpa } from './util.js';
 import { tituloPomodoro } from './titulo.js';
 import { mostrarAviso, esconderAviso, avisoDeFalha } from './aviso.js';
-import { irPara, telaAtual, aoTrocarDeTela } from './navegacao.js';
+import { telaAtual } from './navegacao.js';
 
 const MINUTO = 60 * 1000;
 const INTERVALO_GRAVACAO_MS = 5000;
@@ -22,7 +22,7 @@ const el = elementos([
   'btnMain', 'btnPause', 'btnSkip', 'btnReset', 'btnResume', 'pauseBar', 'pauseWhy', 'pauseElapsed',
   'reasonPanel', 'reasonGrid', 'btnCancelPause', 'btnSound', 'soundLabel', 'btnAuto',
   'statPomos', 'statFocus', 'reasonList', 'reasonEmpty',
-  'ladoPomodoro', 'ladoPomoFase', 'ladoPomoTempo', 'ladoPomoBotao',
+  'ladoPomodoro', 'ladoPomoFase', 'ladoPomoTempo', 'ladoPomoBotao', 'pomoAbrir', 'pomoPopup',
 ]);
 
 /* Os campos do estado seguem em inglês (phase, remaining, breaks...) porque é o formato já gravado no banco. */
@@ -30,7 +30,6 @@ let estado = estadoVazio();
 let diaDoEstado = hoje();
 let ultimoTique = Date.now();
 let ultimaGravacao = 0;
-let pausaPendente = false;
 
 const duracaoDaFase = () => DURACAO[estado.phase];
 const proximoDescansoEhLongo = () => (estado.breaks + 1) % DESCANSOS_POR_CICLO === 0;
@@ -261,9 +260,31 @@ function retomar() {
   comecarContagem();
 }
 
+function abrirPopup(aberto) {
+  el.pomoPopup.hidden = !aberto;
+  el.pomoAbrir.setAttribute('aria-expanded', String(aberto));
+  if (!aberto) {
+    el.reasonPanel.hidden = true;
+  }
+}
+
+function fecharPopupPorFora(evento) {
+  if (!el.pomoPopup.hidden && !el.pomoPopup.contains(evento.target) && !el.ladoPomodoro.contains(evento.target)) {
+    abrirPopup(false);
+  }
+}
+
+function fecharPopupComEsc(evento) {
+  if (evento.key === 'Escape' && !el.pomoPopup.hidden) {
+    abrirPopup(false);
+    el.pomoAbrir.focus();
+  }
+}
+
 function painelDeMotivo(aberto) {
   el.reasonPanel.hidden = !aberto;
   if (aberto) {
+    abrirPopup(true);
     el.reasonGrid.querySelector('button')?.focus();
     el.reasonPanel.scrollIntoView({ block: 'nearest' });
   }
@@ -346,12 +367,8 @@ function atalhoDeEspaco(evento) {
   }
 }
 
-/* O painel de motivo fica na tela Hoje: fora dela, a pausa só é pedida depois que a tela aparece. */
 function acaoDaLateral() {
-  if (estado.running && telaAtual() !== 'hoje') {
-    pausaPendente = true;
-    irPara('hoje');
-  } else if (estado.running) {
+  if (estado.running) {
     pedirPausa();
   } else if (estado.paused) {
     retomar();
@@ -367,12 +384,9 @@ function ligarEventos() {
   el.btnPause.addEventListener('click', pedirPausa);
   el.btnCancelPause.addEventListener('click', () => painelDeMotivo(false));
   el.ladoPomoBotao.addEventListener('click', acaoDaLateral);
-  aoTrocarDeTela((tela) => {
-    if (tela === 'hoje' && pausaPendente) {
-      pausaPendente = false;
-      pedirPausa();
-    }
-  });
+  el.pomoAbrir.addEventListener('click', () => abrirPopup(el.pomoPopup.hidden));
+  document.addEventListener('pointerdown', fecharPopupPorFora);
+  document.addEventListener('keydown', fecharPopupComEsc);
 
   el.reasonGrid.innerHTML = MOTIVOS_PAUSA
     .map((motivo) => `<button class="motivo" type="button" data-reason="${escapar(motivo)}">${escapar(motivo)}</button>`)

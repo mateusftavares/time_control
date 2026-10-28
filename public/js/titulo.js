@@ -4,7 +4,7 @@ let textoPomodoro = '';
 let textoPonto = '';
 
 function pintar() {
-  document.title = textoPomodoro || textoPonto || 'TimeVer';
+  document.title = textoPomodoro || textoPonto || 'TimEver';
 }
 
 /**

@@ -3,14 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>TimeVer</title>
+  <title>TimEver</title>
   <link rel="icon" type="image/svg+xml" href="/img/timever-icone.svg">
   <link rel="apple-touch-icon" href="/img/apple-touch-icon.png">
   <link rel="manifest" href="/manifest.webmanifest">
   <meta name="theme-color" content="#0E1015">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-title" content="TimeVer">
+  <meta name="apple-mobile-web-app-title" content="TimEver">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -26,7 +26,7 @@
       <a class="marca" href="#hoje">
         <img class="marca-icone" src="/img/timever-icone.svg" alt="" width="34" height="34">
         <span class="marca-texto">
-          <span class="marca-nome">TimeVer</span>
+          <span class="marca-nome">TimEver</span>
           <span class="marca-sub">Ponto · Banco · Foco</span>
         </span>
       </a>
@@ -37,11 +37,72 @@
         <div class="resumo-item"><span class="rotulo">Sem marcação</span><b id="ladoPendentes">—</b></div>
         <div class="resumo-item"><span class="rotulo">Saída prevista</span><b class="mono" id="menuPrevisao"></b></div>
         <div class="resumo-pomodoro" id="ladoPomodoro" data-phase="foco" data-ativo="false">
-          <span class="painel-pomo-fase"><span class="bolinha" aria-hidden="true"></span><b id="ladoPomoFase">Pomodoro</b></span>
-          <b class="mono" id="ladoPomoTempo">25:00</b>
+          <button class="pomo-abrir" id="pomoAbrir" type="button" aria-expanded="false" aria-controls="pomoPopup" title="Abrir o pomodoro">
+            <span class="painel-pomo-fase"><span class="bolinha" aria-hidden="true"></span><b id="ladoPomoFase">Pomodoro</b></span>
+            <b class="mono" id="ladoPomoTempo">25:00</b>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
+          </button>
           <button class="botao botao-secundario botao-pequeno" id="ladoPomoBotao" type="button">Começar foco</button>
         </div>
       </section>
+
+      <div class="pomo-popup" id="pomoPopup" hidden>
+        <section class="cartao pomodoro" id="cardPomo" data-phase="foco" data-paused="false" aria-label="Pomodoro">
+          <div class="cartao-cabeca">
+            <h2>Pomodoro</h2>
+            <span class="pilula" id="phasePill">Foco</span>
+          </div>
+
+          <div class="pomo-corpo">
+            <div class="anel">
+              <svg viewBox="0 0 112 112" aria-hidden="true">
+                <circle class="anel-trilho" cx="56" cy="56" r="48"></circle>
+                <circle class="anel-progresso" id="anelProgresso" cx="56" cy="56" r="48"></circle>
+              </svg>
+              <span class="anel-centro">
+                <span class="anel-tempo mono" id="clock" role="timer">25:00</span>
+                <span class="anel-nota" id="clockNote">de 25:00</span>
+              </span>
+            </div>
+            <div class="pomo-info">
+              <span class="pomo-etapa" id="stageSub"></span>
+              <div class="ciclo" id="cycleTrack" role="img"></div>
+              <span class="texto-mudo pequeno">o 5º descanso é o longo, de 10 min</span>
+            </div>
+          </div>
+
+          <div class="pomo-controles">
+            <button class="botao botao-primario" id="btnMain" type="button">Começar foco</button>
+            <button class="botao botao-secundario" id="btnPause" type="button">Pausar</button>
+            <button class="botao botao-fantasma" id="btnSkip" type="button">Pular</button>
+          </div>
+
+          <div class="painel-motivo" id="reasonPanel" hidden>
+            <span class="painel-motivo-titulo">Por que você está parando?</span>
+            <span class="texto-mudo pequeno">O relógio congela e o tempo entra na conta do motivo.</span>
+            <div class="motivos" id="reasonGrid"></div>
+            <button class="botao-texto" id="btnCancelPause" type="button">Cancelar</button>
+          </div>
+
+          <div class="barra-pausa" id="pauseBar" hidden>
+            <span class="barra-pausa-texto" id="pauseWhy">Em pausa</span>
+            <span class="mono texto-mudo" id="pauseElapsed">00:00</span>
+            <button class="botao botao-secundario botao-pequeno" id="btnResume" type="button">Voltar ao trabalho</button>
+          </div>
+
+          <div class="pomo-hoje">
+            <div class="linha-info"><span class="texto-secundario">Hoje</span><span><b class="mono" id="statPomos">0</b> pomodoros · <b class="mono" id="statFocus">0</b> min de foco</span></div>
+            <div id="reasonList"></div>
+            <span class="texto-mudo pequeno" id="reasonEmpty">Nenhuma pausa registrada hoje.</span>
+          </div>
+
+          <div class="pomo-rodape">
+            <button class="alternancia" id="btnSound" type="button" aria-pressed="true"><span id="soundLabel">Som</span></button>
+            <button class="alternancia" id="btnAuto" type="button" aria-pressed="true">Emendar etapas</button>
+            <button class="botao-texto" id="btnReset" type="button">Zerar dia</button>
+          </div>
+        </section>
+      </div>
     </header>
 
     <div class="aviso" id="aviso" role="alert" hidden></div>
@@ -146,76 +207,6 @@
           <p class="formula mono" id="formula"></p>
         </div>
 
-        <aside class="coluna-lateral">
-          <section class="cartao pomodoro" id="cardPomo" data-phase="foco" data-paused="false" aria-label="Pomodoro">
-            <div class="cartao-cabeca">
-              <h2>Pomodoro</h2>
-              <span class="pilula" id="phasePill">Foco</span>
-            </div>
-
-            <div class="pomo-corpo">
-              <div class="anel">
-                <svg viewBox="0 0 112 112" aria-hidden="true">
-                  <circle class="anel-trilho" cx="56" cy="56" r="48"></circle>
-                  <circle class="anel-progresso" id="anelProgresso" cx="56" cy="56" r="48"></circle>
-                </svg>
-                <span class="anel-centro">
-                  <span class="anel-tempo mono" id="clock" role="timer">25:00</span>
-                  <span class="anel-nota" id="clockNote">de 25:00</span>
-                </span>
-              </div>
-              <div class="pomo-info">
-                <span class="pomo-etapa" id="stageSub"></span>
-                <div class="ciclo" id="cycleTrack" role="img"></div>
-                <span class="texto-mudo pequeno">o 5º descanso é o longo, de 10 min</span>
-              </div>
-            </div>
-
-            <div class="pomo-controles">
-              <button class="botao botao-primario" id="btnMain" type="button">Começar foco</button>
-              <button class="botao botao-secundario" id="btnPause" type="button">Pausar</button>
-              <button class="botao botao-fantasma" id="btnSkip" type="button">Pular</button>
-            </div>
-
-            <div class="painel-motivo" id="reasonPanel" hidden>
-              <span class="painel-motivo-titulo">Por que você está parando?</span>
-              <span class="texto-mudo pequeno">O relógio congela e o tempo entra na conta do motivo.</span>
-              <div class="motivos" id="reasonGrid"></div>
-              <button class="botao-texto" id="btnCancelPause" type="button">Cancelar</button>
-            </div>
-
-            <div class="barra-pausa" id="pauseBar" hidden>
-              <span class="barra-pausa-texto" id="pauseWhy">Em pausa</span>
-              <span class="mono texto-mudo" id="pauseElapsed">00:00</span>
-              <button class="botao botao-secundario botao-pequeno" id="btnResume" type="button">Voltar ao trabalho</button>
-            </div>
-
-            <div class="pomo-hoje">
-              <div class="linha-info"><span class="texto-secundario">Hoje</span><span><b class="mono" id="statPomos">0</b> pomodoros · <b class="mono" id="statFocus">0</b> min de foco</span></div>
-              <div id="reasonList"></div>
-              <span class="texto-mudo pequeno" id="reasonEmpty">Nenhuma pausa registrada hoje.</span>
-            </div>
-
-            <div class="pomo-rodape">
-              <button class="alternancia" id="btnSound" type="button" aria-pressed="true"><span id="soundLabel">Som</span></button>
-              <button class="alternancia" id="btnAuto" type="button" aria-pressed="true">Emendar etapas</button>
-              <button class="botao-texto" id="btnReset" type="button">Zerar dia</button>
-            </div>
-          </section>
-
-          <section class="cartao" aria-label="Banco de horas">
-            <div class="cartao-cabeca">
-              <h2>Banco de horas</h2>
-              <a class="link-pequeno" href="#banco">ver histórico</a>
-            </div>
-            <div class="banco-resumo">
-              <span class="banco-valor mono" id="hojeBanco">--:--</span>
-              <span class="texto-mudo pequeno" id="hojeBancoCap">acumulado</span>
-            </div>
-            <div class="grafico" id="grafico" role="img"></div>
-            <div class="grafico-meses" id="graficoMeses"></div>
-          </section>
-        </aside>
       </div>
     </section>
 
@@ -254,6 +245,11 @@
           <span class="numero-rotulo">Dias sem marcação</span>
           <span class="numero-valor grande mono" id="totalPendentes">0</span>
           <span class="numero-legenda" id="capPendentes"></span>
+        </div>
+        <div class="cartao numero grafico-cartao">
+          <span class="numero-rotulo">Saldo por mês</span>
+          <div class="grafico" id="grafico" role="img"></div>
+          <div class="grafico-meses" id="graficoMeses"></div>
         </div>
       </div>
 
@@ -429,6 +425,12 @@
               <button class="botao botao-primario botao-pequeno" id="nomeSalvar" type="submit">Salvar nome</button>
             </form>
             <span class="texto-mudo pequeno estado" id="perfilEstado" role="status"></span>
+          </section>
+
+          <section class="cartao" aria-labelledby="corTitulo">
+            <div class="cartao-cabeca"><h2 id="corTitulo">Cor de destaque</h2></div>
+            <div class="cores" id="corOpcoes" role="group" aria-labelledby="corTitulo"></div>
+            <span class="texto-mudo pequeno estado" id="corEstado" role="status"></span>
           </section>
 
           <section class="cartao" aria-label="Trocar senha">
