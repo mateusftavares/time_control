@@ -41,7 +41,7 @@ navegador (public/, módulos ES)
 
 | Módulo | Responsabilidade |
 |---|---|
-| `main.js` | Ponto de entrada do app. Exige sessão, carrega o perfil, aplica a aparência, libera a tela de Usuários para admin, carrega jornadas e dias e liga as telas, nessa ordem. |
+| `main.js` | Ponto de entrada do app. Exige sessão, carrega o perfil, aplica a aparência, libera a tela Empresa para o ADM, carrega jornadas e dias e liga as telas, nessa ordem. |
 | `config.js` | URL do Supabase e anon key (públicas). |
 | `supabase.js` | Cria o cliente supabase-js. Guarda a sessão no `localStorage` com "Lembrar de mim" e no `sessionStorage` sem ele. Usa o fluxo *implicit*, porque o convite é aberto num navegador diferente do de quem convidou e o PKCE não funcionaria. |
 | `hash-inicial.js` | Lê o `#hash` da URL antes do supabase-js limpá-lo, para detectar link de convite, de recuperação ou expirado. Precisa ser importado antes de `supabase.js`. |
@@ -55,9 +55,11 @@ navegador (public/, módulos ES)
 | `mes.js` | Tela Banco de horas: histórico por mês, editor de dia, gráfico de saldo por mês e o resumo do topo. |
 | `importacao.js` | Tela Importar: lê o espelho colado e confere cada dia contra o saldo oficial antes de gravar. |
 | `pomodoro.js` | Pomodoro: popup do topo, contagem, pausas com motivo, som, atalho Espaço e gravação periódica. Também guarda a tarefa em foco e soma nela o tempo de foco a cada gravação (`focarEm`, `tarefaEmFoco`). |
-| `perfil.js` | Meu perfil: nome, foto, aparência, troca de senha e jornada por vigência. |
+| `perfil.js` | Meu perfil: nome, foto, aparência, troca de senha e a jornada atribuída (só leitura). Carrega as jornadas do usuário (`versoesEfetivas`) para o cálculo. |
 | `aparencia.js` | Lista das preferências visuais (cor, cartões, fundo) e aplicação delas no `<html>`. |
-| `usuarios.js` | Tela de Usuários (admin). Chama `/api/usuarios`. |
+| `empresa.js` | Tela Empresa (ADM): troca entre as abas Usuários e Jornadas. |
+| `usuarios.js` | Aba Usuários da Empresa. Chama `/api/usuarios`. |
+| `jornadas.js` | Aba Jornadas da Empresa: modelos, vigências e atribuições. Depois de cada mudança, recalcula o banco do próprio ADM. |
 | `login.js`, `definir-senha.js`, `acesso.js` | Telas de acesso e mensagens de erro do Auth em português. |
 | `titulo.js` | Título da aba. O pomodoro tem prioridade enquanto roda; fora isso, aparece a saída prevista. |
 | `aviso.js` | Faixa vermelha de erro no topo (Supabase fora do ar, gravação recusada). |
@@ -68,7 +70,7 @@ navegador (public/, módulos ES)
 | Módulo | Conteúdo |
 |---|---|
 | `regras.js` | Trabalhado, almoço mínimo, saldo do dia (`avaliar`), tolerância, dia em andamento e validação das marcações. |
-| `jornada.js` | Vigências, jornada padrão, carga do dia, dia útil e validação de uma versão de jornada. |
+| `jornada.js` | Vigências, jornada padrão, carga do dia, dia útil, validação de uma versão e `versoesEfetivas` (atribuições + versões dos modelos → versões do usuário). |
 | `tempo.js` | Datas `AAAA-MM-DD` no fuso local e conversões entre minutos e `HH:MM`. |
 | `registro.js` | Validação e normalização de um registro de dia. |
 | `espelho.js` | Leitura do texto do TiqueTaque e conferência contra o saldo oficial. |
@@ -103,7 +105,8 @@ navegador (public/, módulos ES)
 
 ## Segurança, em resumo
 
-- RLS em todas as tabelas. `dias`, `pomodoro`, `jornadas` e `tarefas` só aceitam `user_id = auth.uid()` com o perfil **ativo numa empresa ativa**: desativar o usuário ou a empresa corta o acesso na hora, mesmo com um token ainda válido.
+- RLS em todas as tabelas. `dias`, `pomodoro` e `tarefas` só aceitam `user_id = auth.uid()` com o perfil **ativo numa empresa ativa**: desativar o usuário ou a empresa corta o acesso na hora, mesmo com um token ainda válido.
+- Jornadas da empresa (`modelos_jornada`, `versoes_jornada`, `atribuicoes_jornada`): todos da empresa leem os modelos e as versões; cada um lê as próprias atribuições e o ADM as da empresa; só o ADM grava. O trigger `conferir_atribuicao_jornada` recusa atribuir um modelo de outra empresa por qualquer caminho.
 - O cliente só pode alterar em `perfis` as colunas `nome`, `avatar_path`, `cor_destaque`, `superficie` e `fundo`, e só do próprio perfil (privilégio por coluna mais policy). Papel, ativo, empresa e super ADM ficam fora do alcance do cliente; `empresas` é só leitura para ele.
 - O trigger `manter_adm_da_empresa` impede que uma empresa com membros fique sem ADM ativo, mesmo pelo SQL Editor; o índice `perfis_um_adm_por_empresa` impede dois ADMs.
 - A CSP do `netlify.toml` aceita scripts só do próprio site e do jsDelivr (supabase-js com versão fixa) e conexões só com o site e o Supabase. Não há `unsafe-inline` nem iframes.

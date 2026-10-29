@@ -16,8 +16,8 @@ Ponto do dia, banco de horas e pomodoro, na web. O nome junta *time* e *ever*.
 | **Tarefas** | Demandas do trabalho em lista ou Kanban: cliente, prazo, prioridade, checklist, anotações, commits, recorrência e o tempo de foco do pomodoro. |
 | **Importar** | Lê o espelho do TiqueTaque colado e confere cada dia contra o saldo oficial antes de gravar. |
 | **Pomodoro** | Popup no topo: foco de 25 min, descanso de 5 min e longo de 10 min, com pausas por motivo e foco por tarefa. |
-| **Usuários** (admin) | Convidar, mudar o papel, desativar e reativar. |
-| **Meu perfil** | Nome, foto, aparência (cor, vidro e fundo), senha e jornada com tolerância por vigência. |
+| **Empresa** (ADM) | Usuários: convidar, desativar, reativar e transferir o papel de ADM. Jornadas: modelos com vigência, tolerância e regra do banco, e quem usa cada um a partir de quando. |
+| **Meu perfil** | Nome, foto, aparência (cor, vidro e fundo), senha e a jornada atribuída (só leitura). |
 
 O app pode ser instalado no celular pelo navegador (no iPhone: Safari → Compartilhar → Adicionar à Tela de Início).
 

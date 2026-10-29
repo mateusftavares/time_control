@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { paraRegistro, paraLinha, umPorDia } from '../public/shared/linhas.js';
 import { normalizarRegistro } from '../public/shared/registro.js';
 import { resumoDoBanco, compararDias, mesesDivergentes, diasComSaldoDiferente } from '../scripts/conferencia.js';
-import { paraJornada, linhaDeJornada } from '../public/shared/linhas.js';
+import { paraJornada, linhaDeVersao, agruparVersoes } from '../public/shared/linhas.js';
 import { JORNADA_PADRAO } from '../public/shared/jornada.js';
 
 const USUARIO = '11111111-1111-4111-8111-111111111111';
@@ -56,10 +56,13 @@ test('diasComSaldoDiferente lista só os dias em que as regras discordam', () =>
   assert.deepEqual(diasComSaldoDiferente(registros, regraNormal, zeraCompensacao), [{ dia: '2026-10-02', a: -480, b: 0 }]);
 });
 
-test('linhaDeJornada e paraJornada fazem a volta completa', () => {
+test('linhaDeVersao e paraJornada fazem a volta completa; agruparVersoes separa por modelo', () => {
   const versao = { ...JORNADA_PADRAO, vigenteDesde: '2026-11-01' };
-  const linha = linhaDeJornada(versao, USUARIO);
-  assert.equal(linha.user_id, USUARIO);
+  const linha = linhaDeVersao(versao, 'modelo-a');
+  assert.equal(linha.modelo_id, 'modelo-a');
   assert.equal(linha.tolerancia_antes, 10);
   assert.deepEqual(paraJornada(linha), versao);
+  const grupos = agruparVersoes([linha, { ...linha, vigente_desde: '2026-12-01' }, { ...linha, modelo_id: 'modelo-b' }]);
+  assert.equal(grupos.get('modelo-a').length, 2);
+  assert.equal(grupos.get('modelo-b')[0].vigenteDesde, '2026-11-01');
 });

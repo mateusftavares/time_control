@@ -9,12 +9,12 @@ import { iniciarMes } from './mes.js';
 import { iniciarImportacao } from './importacao.js';
 import { iniciarPomodoro, gravarPomodoroAoSair } from './pomodoro.js';
 import { iniciarTarefas } from './tarefas.js';
-import { iniciarUsuarios } from './usuarios.js';
+import { iniciarEmpresa } from './empresa.js';
 import { iniciarPerfil, carregarJornadas } from './perfil.js';
 import { mostrarAviso, avisoDeFalha } from './aviso.js';
 import { aparenciaDoPerfil, aplicarAparencia } from './aparencia.js';
 
-const el = elementos(['btnSair', 'menuUsuarios']);
+const el = elementos(['btnSair', 'menuEmpresa']);
 
 function desligarBotoes() {
   document.querySelectorAll('button').forEach((botao) => {
@@ -78,9 +78,9 @@ async function iniciar() {
   aplicarAparencia(aparenciaDoPerfil(perfil));
   document.body.removeAttribute('data-autenticando');
   if (perfil?.papel === 'admin') {
-    liberarTela('usuarios');
-    el.menuUsuarios.hidden = false;
-    iniciarUsuarios(perfil);
+    liberarTela('empresa');
+    el.menuEmpresa.hidden = false;
+    iniciarEmpresa(perfil);
   }
   iniciarNavegacao();
 

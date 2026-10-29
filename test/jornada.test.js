@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  JORNADA_PADRAO, jornadaDe, cargaPadraoDe, cargaDoExpediente, ehUtil, inicioDoHistorico,
+  JORNADA_PADRAO, jornadaDe, cargaPadraoDe, cargaDoExpediente, ehUtil, inicioDoHistorico, versoesEfetivas,
   normalizarJornada, semanaComercial, semExpediente, textoTolerancia,
 } from '../public/shared/jornada.js';
 import { avaliar, ajustarMarcacoes, dentroDaTolerancia } from '../public/shared/regras.js';
@@ -183,4 +183,30 @@ test('fora da equivalência só fica a carga vazia em fim de semana ou antes de 
   assert.notEqual(avaliar(sabadoSemCarga, VERSOES_EQUIVALENTES).saldo, legado.avaliar(sabadoSemCarga).saldo);
   const congelado = { ...sabadoSemCarga, carga: '08:00' };
   assert.equal(avaliar(congelado, VERSOES_EQUIVALENTES).saldo, legado.avaliar(sabadoSemCarga).saldo);
+});
+
+test('versoesEfetivas: modelo atribuído desde a primeira vigência reproduz as vigências do usuário', () => {
+  const versoes = [versao({ vigenteDesde: '2026-02-01', toleranciaAntes: 2 }), versao({ vigenteDesde: '2026-03-01', toleranciaAntes: 3 })];
+  const efetivas = versoesEfetivas([{ desde: '2026-02-01', modeloId: 'm' }], new Map([['m', versoes]]));
+  assert.deepEqual(efetivas, versoes);
+});
+
+test('versoesEfetivas: trocar de modelo corta as versões do anterior e começa pela vigente do novo', () => {
+  const a = [versao({ vigenteDesde: '2026-01-01', toleranciaAntes: 1 }), versao({ vigenteDesde: '2026-06-01', toleranciaAntes: 6 })];
+  const b = [versao({ vigenteDesde: '2025-01-01', toleranciaAntes: 20 }), versao({ vigenteDesde: '2026-08-01', toleranciaAntes: 28 })];
+  const efetivas = versoesEfetivas(
+    [{ desde: '2026-05-01', modeloId: 'b' }, { desde: '2026-01-15', modeloId: 'a' }],
+    new Map([['a', a], ['b', b]]),
+  );
+  assert.deepEqual(efetivas.map((v) => [v.vigenteDesde, v.toleranciaAntes]),
+    [['2026-01-15', 1], ['2026-05-01', 20], ['2026-08-01', 28]]);
+  assert.equal(jornadaDe('2026-07-10', efetivas).toleranciaAntes, 20, 'a versão de junho do modelo antigo não vale mais');
+  assert.equal(jornadaDe('2026-01-10', efetivas), JORNADA_PADRAO, 'antes da primeira atribuição vale o padrão');
+});
+
+test('versoesEfetivas: modelo sem versão no início do período vale o padrão até a primeira dele; sem atribuição, nada', () => {
+  const efetivas = versoesEfetivas([{ desde: '2026-01-01', modeloId: 'm' }], new Map([['m', [versao({ vigenteDesde: '2026-03-01' })]]]));
+  assert.deepEqual(efetivas.map((v) => v.vigenteDesde), ['2026-01-01', '2026-03-01']);
+  assert.equal(efetivas[0].semana, JORNADA_PADRAO.semana);
+  assert.deepEqual(versoesEfetivas([], new Map()), []);
 });

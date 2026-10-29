@@ -1,7 +1,7 @@
 import { normalizarRegistro, diaValido } from '/shared/registro.js';
 import { sanitizarEstado } from '/shared/pomodoro.js';
 import {
-  COLUNAS_DIAS, COLUNAS_JORNADAS, paraRegistro, paraLinha, umPorDia, paraJornada, linhaDeJornada,
+  COLUNAS_DIAS, COLUNAS_JORNADAS, paraRegistro, paraLinha, umPorDia, linhaDeVersao, agruparVersoes,
 } from '/shared/linhas.js';
 import { normalizarJornada } from '/shared/jornada.js';
 import { normalizarTarefa, COLUNAS_TAREFAS, paraTarefa, linhaDeTarefa } from '/shared/tarefas.js';
@@ -14,7 +14,10 @@ const LIMITE_LOTE = 1000;
 const LINHAS_POR_PAGINA = 1000;
 const CONFLITO = 'user_id,dia';
 const SESSAO_EXPIRADA = ['PGRST301', 'PGRST303'];
-const CONFLITO_JORNADA = 'user_id,vigente_desde';
+const CONFLITO_VERSAO = 'modelo_id,vigente_desde';
+const CONFLITO_ATRIBUICAO = 'user_id,desde';
+const TAMANHO_MAXIMO_DO_NOME_DA_JORNADA = 80;
+const FORMATO_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const BUCKET_DAS_FOTOS = 'avatares';
 const VALIDADE_DA_URL_DA_FOTO_S = 60 * 60;
 const TAMANHO_MAXIMO_DO_NOME = 100;
@@ -165,33 +168,120 @@ async function salvarPomodoro(dia, entrada, { keepalive = false } = {}) {
   return estado;
 }
 
-async function listarJornadas() {
-  const linhas = await executar(supabase.from('jornadas').select(COLUNAS_JORNADAS).order('vigente_desde'));
-  return linhas.map(paraJornada);
+function exigirId(id) {
+  if (!FORMATO_UUID.test(String(id))) {
+    throw new ErroApi('identificador inválido', 400);
+  }
 }
 
 /**
- * @description Grava uma versão de jornada; se a data de vigência mudou, a versão da data antiga sai
+ * @description Jornadas do usuário logado: as atribuições (com o nome do modelo) e as versões dos modelos delas
+ * @returns {Promise<{atribuicoes: Array<{desde: string, modeloId: string, nome: string}>, versoesPorModelo: Map}>}
+ */
+async function minhaJornada() {
+  const linhas = await executar(supabase.from('atribuicoes_jornada')
+    .select('desde, modelo_id, modelos_jornada(nome)').eq('user_id', exigirUsuario()).order('desde'));
+  const ids = [...new Set(linhas.map((linha) => linha.modelo_id))];
+  const versoes = ids.length
+    ? await executar(supabase.from('versoes_jornada').select(`modelo_id, ${COLUNAS_JORNADAS}`).in('modelo_id', ids))
+    : [];
+  return {
+    atribuicoes: linhas.map((linha) => ({ desde: linha.desde, modeloId: linha.modelo_id, nome: linha.modelos_jornada?.nome ?? '' })),
+    versoesPorModelo: agruparVersoes(versoes),
+  };
+}
+
+/**
+ * @description Tudo da tela de jornadas do ADM: modelos, versões, atribuições e membros da empresa (a RLS
+ *   limita à empresa dele)
+ * @returns {Promise<{modelos: object[], versoesPorModelo: Map, atribuicoes: object[], membros: object[]}>}
+ */
+async function jornadasDaEmpresa() {
+  const [modelos, versoes, atribuicoes, membros] = await Promise.all([
+    executar(supabase.from('modelos_jornada').select('id, nome').order('nome')),
+    executar(supabase.from('versoes_jornada').select(`modelo_id, ${COLUNAS_JORNADAS}`)),
+    executar(supabase.from('atribuicoes_jornada').select('user_id, desde, modelo_id').order('desde')),
+    executar(supabase.from('perfis').select('id, nome, email, ativo').order('nome')),
+  ]);
+  return {
+    modelos,
+    versoesPorModelo: agruparVersoes(versoes),
+    atribuicoes: atribuicoes.map((linha) => ({ userId: linha.user_id, desde: linha.desde, modeloId: linha.modelo_id })),
+    membros,
+  };
+}
+
+/**
+ * @description Cria um modelo de jornada (sem id) ou renomeia (com id)
+ * @param {string} nome
+ * @param {string|null} id
+ * @returns {Promise<{id: string, nome: string}>}
+ */
+async function salvarModeloJornada(nome, id = null) {
+  const limpo = String(nome ?? '').trim();
+  if (!limpo || limpo.length > TAMANHO_MAXIMO_DO_NOME_DA_JORNADA || /[\u0000-\u001F\u007F]/.test(limpo)) {
+    throw new ErroApi(`o nome da jornada deve ter de 1 a ${TAMANHO_MAXIMO_DO_NOME_DA_JORNADA} caracteres`, 400);
+  }
+  if (id) {
+    exigirId(id);
+    return executar(supabase.from('modelos_jornada').update({ nome: limpo }).eq('id', id).select('id, nome').single());
+  }
+  return executar(supabase.from('modelos_jornada').insert({ nome: limpo }).select('id, nome').single());
+}
+
+async function apagarModeloJornada(id) {
+  exigirId(id);
+  await executar(supabase.from('modelos_jornada').delete().eq('id', id));
+  return null;
+}
+
+/**
+ * @description Grava uma versão de um modelo; se a data de vigência mudou, a versão da data antiga sai
+ * @param {string} modeloId
  * @param {object} entrada
  * @param {string|null} vigenciaAnterior - "vigente desde" da versão que estava sendo editada
  * @returns {Promise<object>}
  */
-async function salvarJornada(entrada, vigenciaAnterior = null) {
+async function salvarVersaoJornada(modeloId, entrada, vigenciaAnterior = null) {
+  exigirId(modeloId);
   const resultado = normalizarJornada(entrada);
   if (!resultado.ok) {
     throw new ErroApi('jornada inválida', 400, resultado.erros);
   }
-  const linha = linhaDeJornada(resultado.jornada, exigirUsuario());
-  await executar(supabase.from('jornadas').upsert(linha, { onConflict: CONFLITO_JORNADA }));
+  const linha = linhaDeVersao(resultado.jornada, modeloId);
+  await executar(supabase.from('versoes_jornada').upsert(linha, { onConflict: CONFLITO_VERSAO }));
   if (vigenciaAnterior && vigenciaAnterior !== resultado.jornada.vigenteDesde) {
-    await apagarJornada(vigenciaAnterior);
+    await apagarVersaoJornada(modeloId, vigenciaAnterior);
   }
   return resultado.jornada;
 }
 
-async function apagarJornada(vigenteDesde) {
+async function apagarVersaoJornada(modeloId, vigenteDesde) {
+  exigirId(modeloId);
   exigirDia(vigenteDesde);
-  await executar(supabase.from('jornadas').delete().eq('vigente_desde', vigenteDesde));
+  await executar(supabase.from('versoes_jornada').delete().eq('modelo_id', modeloId).eq('vigente_desde', vigenteDesde));
+  return null;
+}
+
+/**
+ * @description Atribui um modelo a um membro a partir de uma data (substitui a atribuição da mesma data)
+ * @param {string} userId
+ * @param {string} modeloId
+ * @param {string} desde - AAAA-MM-DD
+ */
+async function atribuirJornada(userId, modeloId, desde) {
+  exigirId(userId);
+  exigirId(modeloId);
+  exigirDia(desde);
+  await executar(supabase.from('atribuicoes_jornada')
+    .upsert({ user_id: userId, modelo_id: modeloId, desde }, { onConflict: CONFLITO_ATRIBUICAO }));
+  return null;
+}
+
+async function removerAtribuicaoJornada(userId, desde) {
+  exigirId(userId);
+  exigirDia(desde);
+  await executar(supabase.from('atribuicoes_jornada').delete().eq('user_id', userId).eq('desde', desde));
   return null;
 }
 
@@ -306,9 +396,14 @@ export const api = {
   gravarLote,
   lerPomodoro,
   salvarPomodoro,
-  listarJornadas,
-  salvarJornada,
-  apagarJornada,
+  minhaJornada,
+  jornadasDaEmpresa,
+  salvarModeloJornada,
+  apagarModeloJornada,
+  salvarVersaoJornada,
+  apagarVersaoJornada,
+  atribuirJornada,
+  removerAtribuicaoJornada,
   salvarNome,
   salvarPreferencia,
   enviarFoto,

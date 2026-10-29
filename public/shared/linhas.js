@@ -66,18 +66,31 @@ export function paraJornada(linha) {
 }
 
 /**
- * @description Versão de jornada (já normalizada) para a linha da tabela `jornadas` de um usuário
+ * @description Versão de jornada (já normalizada) para a linha da tabela `versoes_jornada` de um modelo
  * @param {object} jornada
- * @param {string} userId
+ * @param {string} modeloId
  * @returns {object}
  */
-export function linhaDeJornada(jornada, userId) {
+export function linhaDeVersao(jornada, modeloId) {
   return {
-    user_id: userId,
+    modelo_id: modeloId,
     vigente_desde: jornada.vigenteDesde,
     tolerancia_antes: jornada.toleranciaAntes,
     tolerancia_depois: jornada.toleranciaDepois,
     modo: jornada.modo,
     semana: jornada.semana,
   };
+}
+
+/**
+ * @description Linhas de `versoes_jornada` (com modelo_id) agrupadas por modelo, no formato do app
+ * @param {object[]} linhas
+ * @returns {Map<string, object[]>}
+ */
+export function agruparVersoes(linhas) {
+  const porModelo = new Map();
+  linhas.forEach((linha) => {
+    porModelo.set(linha.modelo_id, [...(porModelo.get(linha.modelo_id) ?? []), paraJornada(linha)]);
+  });
+  return porModelo;
 }

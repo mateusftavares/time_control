@@ -731,9 +731,44 @@ body[data-autenticando] .shell { visibility: hidden; }
 .jornada-acoes { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
 .jornada-acoes .botao-primario { margin-left: auto; }
 
+/* ---------- empresa: abas, jornadas da empresa e quem usa cada uma ---------- */
+.empresa-secao { display: flex; flex-direction: column; gap: 18px; }
+.empresa-secao[hidden] { display: none; }
+.empresa-acoes { justify-content: space-between; }
+.modelos-jornada { flex: 1 1 280px; max-width: 380px; min-width: 0; }
+.modelos .vigencia { width: 100%; }
+.modelos .vigencia b { font-family: var(--fonte); font-size: 14px; }
+.modelo-form { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0; }
+.modelo-form input, .atribuir select, .atribuir input {
+  height: 36px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--borda-forte);
+  background: var(--campo); color: var(--texto); font-size: 14px; outline: none; min-width: 0;
+}
+.modelo-form input { flex: 1 1 180px; }
+.modelo-form input:focus, .atribuir select:focus, .atribuir input:focus { border-color: var(--acento); }
+
+.pessoas-tabela { min-width: 860px; }
+.pessoa-jornada {
+  display: grid; grid-template-columns: minmax(130px, 1fr) minmax(130px, 1fr) minmax(220px, 2fr) auto;
+  gap: 12px; align-items: center; padding: 10px 0; border-top: 1px solid var(--elevado); font-size: 13px;
+}
+.pessoa-jornada.cabeca-tabela { border-top: 0; }
+.pessoa-jornada > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pessoa-jornada.inativa { opacity: .55; }
+.atribuicoes { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip.atribuicao { display: inline-flex; align-items: center; gap: 6px; font-weight: 500; }
+.chip.atribuicao .botao-texto { font-size: 12px; line-height: 1; padding: 2px; }
+.chip.atribuicao .botao-texto:hover { color: var(--erro-claro); }
+.atribuir { display: flex; align-items: center; gap: 6px; margin: 0; }
+.atribuir select { max-width: 180px; }
+
+.minha-jornada { display: flex; flex-direction: column; gap: 6px; }
+.minha-jornada b { font-size: 15px; }
+.minha-jornada-historico { margin: 4px 0 0; padding-left: 18px; }
+
 @media (max-width: 791px) {
   .convite { max-width: none; }
   .perfil-coluna { max-width: none; }
+  .modelos-jornada { max-width: none; }
 }
 
 /* ---------- tarefas ---------- */

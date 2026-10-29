@@ -1,7 +1,6 @@
-import { hoje, hhmm } from '/shared/tempo.js';
+import { hoje } from '/shared/tempo.js';
 import {
-  JORNADA_PADRAO, ORDEM_DA_SEMANA, NOMES_DA_SEMANA, HORARIOS_DO_EXPEDIENTE,
-  jornadaDe, jornadasAtivas, definirJornadas, cargaDoExpediente, normalizarJornada, resumoDaJornada,
+  jornadaDe, definirJornadas, resumoDaJornada, versoesEfetivas,
 } from '/shared/jornada.js';
 import { api } from './api.js';
 import { supabase } from './supabase.js';
@@ -14,25 +13,16 @@ const TIPOS_DE_FOTO = ['image/jpeg', 'image/png', 'image/webp'];
 const LADO_DA_FOTO_PX = 256;
 const QUALIDADE_DA_FOTO = 0.88;
 const SENHA_MINIMA = 8;
-const EXPLICACAO_DO_MODO = {
-  acumulativo: 'Acumulativo: soma o dia inteiro e compara com a carga. Se o saldo do dia ficar até "antes" minutos abaixo '
-    + 'ou até "depois" minutos acima, vira zero; passou disso, conta inteiro.',
-  individual: 'Individual: compara cada marcação (entrada, almoço, volta, saída) com o horário oficial. Marcação até '
-    + '"antes" minutos adiantada ou até "depois" minutos atrasada vale como o horário oficial; fora disso, vale o horário batido.',
-};
 
 const el = elementos([
   'navAvatar', 'perfilAvatar', 'perfilSub', 'fotoArquivo', 'fotoRemover',
   'formNome', 'perfilNome', 'nomeSalvar', 'perfilEstado',
   'aparencia', 'aparenciaEstado',
   'formTrocarSenha', 'senhaUsuario', 'senhaAtual', 'senhaNova', 'senhaConfirma', 'senhaSalvar', 'senhaEstado',
-  'jornadaNova', 'jornadaVersoes', 'formJornada', 'jornadaDesde', 'jornadaDias', 'tolAntes', 'tolDepois',
-  'modoTolerancia', 'modoExplicacao', 'jornadaApagar', 'jornadaEstado', 'jornadaSalvar',
+  'minhaJornada',
 ]);
 
 let perfil = null;
-let vigenciaEditada = null;
-let modoEditado = 'acumulativo';
 
 function estado(alvo, texto, tipo = '') {
   alvo.textContent = texto;
@@ -231,200 +221,53 @@ async function trocarSenha(evento) {
   }
 }
 
-/* ---------- jornada ---------- */
+/* ---------- jornada (só leitura: quem altera é o ADM da empresa) ---------- */
 
-function campoHorario(rotulo, valor, habilitado) {
-  const campo = document.createElement('input');
-  campo.type = 'time';
-  campo.value = valor ?? '';
-  campo.disabled = !habilitado;
-  campo.setAttribute('aria-label', rotulo);
-  return campo;
-}
+let minhasAtribuicoes = [];
 
-function linhaDoDia(indice, expediente) {
-  const linha = document.createElement('div');
-  linha.className = 'jornada-linha';
-  linha.dataset.semana = String(indice);
-
-  const caixa = document.createElement('label');
-  caixa.className = 'caixa';
-  const marcador = document.createElement('input');
-  marcador.type = 'checkbox';
-  marcador.checked = expediente.trabalha;
-  caixa.append(marcador, document.createTextNode(` ${NOMES_DA_SEMANA[indice]}`));
-
-  const nomes = { entrada: 'entrada', almocoIni: 'saída para o almoço', almocoFim: 'volta do almoço', saida: 'saída' };
-  const campos = HORARIOS_DO_EXPEDIENTE.map((campo) => {
-    const entrada = campoHorario(`${NOMES_DA_SEMANA[indice]}: ${nomes[campo]}`, expediente[campo], expediente.trabalha);
-    entrada.dataset.campo = campo;
-    return entrada;
-  });
-
-  const carga = document.createElement('span');
-  carga.className = 'num mono texto-secundario';
-
-  const atualizarCarga = () => {
-    const lido = expedienteDaLinha(linha);
-    carga.textContent = lido.trabalha ? hhmm(Math.max(0, cargaDoExpediente(lido))) : '—';
-  };
-  marcador.addEventListener('change', () => {
-    campos.forEach((entrada) => {
-      entrada.disabled = !marcador.checked;
-    });
-    atualizarCarga();
-  });
-  campos.forEach((entrada) => entrada.addEventListener('input', atualizarCarga));
-
-  linha.append(caixa, ...campos, carga);
-  atualizarCarga();
-  return linha;
-}
-
-function expedienteDaLinha(linha) {
-  const trabalha = linha.querySelector('input[type="checkbox"]').checked;
-  const expediente = { trabalha };
-  linha.querySelectorAll('input[type="time"]').forEach((campo) => {
-    expediente[campo.dataset.campo] = trabalha ? campo.value || null : null;
-  });
-  return expediente;
-}
-
-function pintarModo(modo) {
-  modoEditado = modo;
-  el.modoTolerancia.querySelectorAll('[data-modo]').forEach((botao) => {
-    botao.setAttribute('aria-pressed', String(botao.dataset.modo === modo));
-  });
-  el.modoExplicacao.textContent = EXPLICACAO_DO_MODO[modo];
-}
-
-function preencherFormulario(jornada, vigenteDesde) {
-  el.jornadaDesde.value = vigenteDesde;
-  el.tolAntes.value = String(jornada.toleranciaAntes);
-  el.tolDepois.value = String(jornada.toleranciaDepois);
-  pintarModo(jornada.modo);
-  el.jornadaDias.replaceChildren(...ORDEM_DA_SEMANA.map((indice) => linhaDoDia(indice, jornada.semana[indice])));
-}
-
-function jornadaDoFormulario() {
-  const semana = Array(7);
-  el.jornadaDias.querySelectorAll('.jornada-linha').forEach((linha) => {
-    semana[Number(linha.dataset.semana)] = expedienteDaLinha(linha);
-  });
-  return {
-    vigenteDesde: el.jornadaDesde.value,
-    toleranciaAntes: Number(el.tolAntes.value),
-    toleranciaDepois: Number(el.tolDepois.value),
-    modo: modoEditado,
-    semana,
-  };
-}
-
-function pintarVersoes() {
-  const versoes = jornadasAtivas();
+function pintarMinhaJornada() {
+  const atual = minhasAtribuicoes.filter((atribuicao) => atribuicao.desde <= hoje()).at(-1);
   const vigente = jornadaDe(hoje());
-
-  if (versoes.length === 0) {
-    const aviso = document.createElement('span');
-    aviso.className = 'texto-mudo pequeno';
-    aviso.textContent = `Nenhuma jornada salva: vale o padrão (${resumoDaJornada(JORNADA_PADRAO)}).`;
-    el.jornadaVersoes.replaceChildren(aviso);
-  } else {
-    el.jornadaVersoes.replaceChildren(...[...versoes].reverse().map((versao) => {
-      const botao = document.createElement('button');
-      botao.type = 'button';
-      botao.className = `vigencia${versao === vigente ? ' atual' : ''}`;
-      botao.setAttribute('aria-pressed', String(versao.vigenteDesde === vigenciaEditada));
-      const titulo = document.createElement('b');
-      titulo.textContent = `desde ${dataCurta(versao.vigenteDesde)}`;
-      const resumo = document.createElement('small');
-      resumo.textContent = resumoDaJornada(versao);
-      botao.append(titulo, resumo);
-      botao.addEventListener('click', () => editarVersao(versao));
-      return botao;
-    }));
-  }
-  el.jornadaApagar.hidden = vigenciaEditada === null;
-}
-
-function editarVersao(versao) {
-  vigenciaEditada = versao.vigenteDesde;
-  preencherFormulario(versao, versao.vigenteDesde);
-  estado(el.jornadaEstado, '');
-  pintarVersoes();
-}
-
-function novaVigencia() {
-  vigenciaEditada = null;
-  preencherFormulario(jornadaDe(hoje()), hoje());
-  estado(el.jornadaEstado, 'Nova vigência: ajuste e salve.');
-  pintarVersoes();
-}
-
-async function recarregarJornadas(selecionar) {
-  definirJornadas(await api.listarJornadas());
-  store.recalcular();
-  const escolhida = jornadasAtivas().find((versao) => versao.vigenteDesde === selecionar);
-  if (escolhida) {
-    editarVersao(escolhida);
-  } else {
-    novaVigencia();
-  }
-}
-
-async function salvarJornada(evento) {
-  evento.preventDefault();
-  const resultado = normalizarJornada(jornadaDoFormulario());
-  if (!resultado.ok) {
-    estado(el.jornadaEstado, resultado.erros.join(' · '), 'erro');
-    return;
-  }
-
-  const { jornada } = resultado;
-  const desde = [jornada.vigenteDesde, vigenciaEditada].filter(Boolean).sort()[0];
-  if (desde < hoje() && !window.confirm(`Isso recalcula o banco de horas dos dias desde ${dataCurta(desde)}. Continuar?`)) {
-    return;
-  }
-  if (vigenciaEditada !== jornada.vigenteDesde && jornadasAtivas().some((versao) => versao.vigenteDesde === jornada.vigenteDesde)
-    && !window.confirm(`Já existe uma vigência em ${dataCurta(jornada.vigenteDesde)}. Substituir?`)) {
-    return;
-  }
-
-  el.jornadaSalvar.disabled = true;
-  try {
-    await api.salvarJornada(jornada, vigenciaEditada);
-    await recarregarJornadas(jornada.vigenteDesde);
-    estado(el.jornadaEstado, 'Jornada salva.', 'ok');
-  } catch (erro) {
-    estado(el.jornadaEstado, `Não foi possível salvar: ${erro.detalhes?.join(' · ') ?? erro.message}.`, 'erro');
-  } finally {
-    el.jornadaSalvar.disabled = false;
-  }
-}
-
-async function apagarJornada() {
-  if (!vigenciaEditada
-    || !window.confirm(`Apagar a vigência de ${dataCurta(vigenciaEditada)}? Os dias dela passam a usar a vigência anterior (ou o padrão).`)) {
-    return;
-  }
-  try {
-    await api.apagarJornada(vigenciaEditada);
-    await recarregarJornadas(null);
-    estado(el.jornadaEstado, 'Vigência apagada.', 'ok');
-  } catch (erro) {
-    estado(el.jornadaEstado, `Não foi possível apagar: ${erro.message}.`, 'erro');
-  }
+  const titulo = document.createElement('b');
+  titulo.textContent = atual ? `${atual.nome} · desde ${dataCurta(atual.desde)}` : 'Sem jornada atribuída: vale o padrão';
+  const resumo = document.createElement('span');
+  resumo.className = 'texto-secundario';
+  resumo.textContent = resumoDaJornada(vigente);
+  const historico = minhasAtribuicoes.length > 1 || (minhasAtribuicoes.length === 1 && !atual)
+    ? minhasAtribuicoes.map((atribuicao) => {
+      const item = document.createElement('li');
+      item.textContent = `${atribuicao.nome} · desde ${dataCurta(atribuicao.desde)}`;
+      return item;
+    })
+    : [];
+  const lista = document.createElement('ul');
+  lista.className = 'minha-jornada-historico texto-mudo pequeno';
+  lista.replaceChildren(...historico);
+  el.minhaJornada.replaceChildren(titulo, resumo, ...(historico.length ? [lista] : []));
 }
 
 /**
- * @description Carrega as versões de jornada do usuário logado; as regras do banco passam a usá-las
+ * @description Carrega as jornadas atribuídas ao usuário logado; as regras do banco passam a usá-las
  */
 export async function carregarJornadas() {
-  definirJornadas(await api.listarJornadas());
+  const { atribuicoes, versoesPorModelo } = await api.minhaJornada();
+  minhasAtribuicoes = atribuicoes;
+  definirJornadas(versoesEfetivas(atribuicoes, versoesPorModelo));
+  if (perfil) {
+    pintarMinhaJornada();
+  }
 }
 
 /**
- * @description Liga a tela Meu perfil (nome, foto, senha, jornada) e o avatar da navegação
+ * @description Recarrega a jornada do usuário logado e recalcula o banco (depois que o ADM muda jornadas)
+ */
+export async function recarregarMinhaJornada() {
+  await carregarJornadas();
+  store.recalcular();
+}
+
+/**
+ * @description Liga a tela Meu perfil (nome, foto, senha, aparência, jornada) e o avatar da navegação
  * @param {{id: string, nome: string, email: string, avatarPath: string|null}} dados
  */
 export function iniciarPerfil(dados) {
@@ -441,17 +284,5 @@ export function iniciarPerfil(dados) {
   el.fotoRemover.addEventListener('click', removerFoto);
   el.formNome.addEventListener('submit', salvarNome);
   el.formTrocarSenha.addEventListener('submit', trocarSenha);
-  el.formJornada.addEventListener('submit', salvarJornada);
-  el.jornadaNova.addEventListener('click', novaVigencia);
-  el.jornadaApagar.addEventListener('click', apagarJornada);
-  el.modoTolerancia.querySelectorAll('[data-modo]').forEach((botao) => {
-    botao.addEventListener('click', () => pintarModo(botao.dataset.modo));
-  });
-
-  const vigente = jornadaDe(hoje());
-  if (vigente.vigenteDesde) {
-    editarVersao(vigente);
-  } else {
-    novaVigencia();
-  }
+  pintarMinhaJornada();
 }

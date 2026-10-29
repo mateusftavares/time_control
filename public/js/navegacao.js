@@ -1,9 +1,9 @@
 const TELAS = ['hoje', 'banco', 'tarefas', 'importar', 'perfil'];
-const TELAS_RESTRITAS = ['usuarios'];
+const TELAS_RESTRITAS = ['empresa'];
 const ouvintes = new Set();
 
 /**
- * @description Libera uma tela que só alguns usuários veem (ex.: Usuários, só para admin)
+ * @description Libera uma tela que só alguns usuários veem (ex.: Empresa, só para o ADM)
  * @param {string} tela
  */
 export function liberarTela(tela) {
@@ -13,7 +13,7 @@ export function liberarTela(tela) {
 }
 
 /**
- * @description Tela pedida no endereço (#hoje, #banco, #tarefas, #importar, #perfil, #usuarios); Hoje quando não reconhece
+ * @description Tela pedida no endereço (#hoje, #banco, #tarefas, #importar, #perfil, #empresa); Hoje quando não reconhece
  * @returns {string}
  */
 export function telaAtual() {

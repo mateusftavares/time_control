@@ -127,6 +127,26 @@ export function inicioDoHistorico(versoes = versoesAtivas) {
 }
 
 /**
+ * @description Versões de jornada de um usuário a partir das atribuições dele e das versões dos modelos da
+ *   empresa: em cada período de atribuição vale a versão do modelo vigente no início dele e as que começam
+ *   dentro dele. Modelo sem versão no início do período vale o padrão até a primeira versão dele
+ * @param {Array<{desde: string, modeloId: string}>} atribuicoes
+ * @param {Map<string, object[]>} versoesPorModelo - versões (formato do app) de cada modelo
+ * @returns {object[]} versões no formato de definirJornadas, da mais antiga para a mais nova
+ */
+export function versoesEfetivas(atribuicoes, versoesPorModelo) {
+  const periodos = [...atribuicoes].sort((a, b) => a.desde.localeCompare(b.desde));
+  return periodos.flatMap((periodo, indice) => {
+    const fim = periodos[indice + 1]?.desde ?? null;
+    const versoes = [...(versoesPorModelo.get(periodo.modeloId) ?? [])]
+      .sort((a, b) => a.vigenteDesde.localeCompare(b.vigenteDesde));
+    const base = versoes.filter((versao) => versao.vigenteDesde <= periodo.desde).at(-1) ?? JORNADA_PADRAO;
+    const dentro = versoes.filter((versao) => versao.vigenteDesde > periodo.desde && (fim === null || versao.vigenteDesde < fim));
+    return [{ ...base, vigenteDesde: periodo.desde }, ...dentro];
+  });
+}
+
+/**
  * @description Tolerância em texto curto, para as legendas
  * @param {object} jornada
  * @returns {string}

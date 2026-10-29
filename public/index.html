@@ -401,43 +401,121 @@
       </div>
     </section>
 
-    <!-- ==================== USUÁRIOS (admin) ==================== -->
-    <section class="tela" data-view="usuarios" aria-labelledby="usuariosTitulo" hidden>
+    <!-- ==================== EMPRESA (ADM): usuários e jornadas ==================== -->
+    <section class="tela" data-view="empresa" aria-labelledby="empresaTitulo" hidden>
       <header class="cabecalho">
         <div class="cabecalho-texto">
-          <h1 id="usuariosTitulo">Usuários</h1>
-          <p>Membros da empresa <b id="usuariosEmpresa"></b>. Convide, desative, reative ou transfira o papel de ADM (a empresa tem um ADM só).</p>
+          <h1 id="empresaTitulo">Empresa</h1>
+          <p><b id="usuariosEmpresa"></b> · só o ADM vê esta tela (a empresa tem um ADM só).</p>
         </div>
         <div class="cabecalho-acoes">
-          <button class="botao botao-secundario" id="usuariosAtualizar" type="button">Atualizar lista</button>
+          <div class="segmentado" id="empresaAbas" role="group" aria-label="Seção da empresa">
+            <button type="button" data-aba="usuarios" aria-pressed="true">Usuários</button>
+            <button type="button" data-aba="jornadas" aria-pressed="false">Jornadas</button>
+          </div>
         </div>
       </header>
 
-      <div class="colunas">
-        <section class="cartao usuarios-lista" aria-label="Usuários cadastrados">
-          <div class="historico-rolagem">
-            <div class="usuarios-tabela">
-              <div class="linha-usuario cabeca-tabela">
-                <span>Nome</span><span>E-mail</span><span>Papel</span><span>Situação</span><span>Último acesso</span><span class="num">Ação</span>
+      <div class="empresa-secao" id="empresaUsuarios">
+        <div class="cartao-cabeca empresa-acoes">
+          <span class="texto-secundario">Convide, desative, reative ou transfira o papel de ADM.</span>
+          <button class="botao botao-secundario botao-pequeno" id="usuariosAtualizar" type="button">Atualizar lista</button>
+        </div>
+        <div class="colunas">
+          <section class="cartao usuarios-lista" aria-label="Usuários cadastrados">
+            <div class="historico-rolagem">
+              <div class="usuarios-tabela">
+                <div class="linha-usuario cabeca-tabela">
+                  <span>Nome</span><span>E-mail</span><span>Papel</span><span>Situação</span><span>Último acesso</span><span class="num">Ação</span>
+                </div>
+                <div id="usuariosCorpo"></div>
               </div>
-              <div id="usuariosCorpo"></div>
             </div>
-          </div>
-          <p class="texto-mudo" id="usuariosEstado">Carregando…</p>
-        </section>
+            <p class="texto-mudo" id="usuariosEstado">Carregando…</p>
+          </section>
 
-        <aside class="cartao convite" aria-label="Convidar usuário">
+          <aside class="cartao convite" aria-label="Convidar usuário">
+            <div class="cartao-cabeca">
+              <h2>Convidar</h2>
+              <span class="texto-mudo pequeno">o convidado define a senha pelo link do e-mail</span>
+            </div>
+            <form class="convite-campos" id="conviteForm" novalidate>
+              <label>Nome<input id="conviteNome" maxlength="100" autocomplete="off"></label>
+              <label>E-mail<input id="conviteEmail" type="email" maxlength="254" autocomplete="off" required></label>
+              <button class="botao botao-primario" id="conviteEnviar" type="submit">Enviar convite</button>
+              <span class="texto-mudo pequeno" id="conviteEstado" role="status"></span>
+            </form>
+          </aside>
+        </div>
+      </div>
+
+      <div class="empresa-secao" id="empresaJornadas" hidden>
+        <div class="colunas">
+          <section class="cartao modelos-jornada" aria-labelledby="modelosTitulo">
+            <div class="cartao-cabeca">
+              <h2 id="modelosTitulo">Jornadas da empresa</h2>
+            </div>
+            <div class="vigencias modelos" id="jornadaModelos" role="group" aria-label="Jornadas da empresa"></div>
+            <form class="modelo-form" id="formModeloNovo" novalidate>
+              <label class="so-leitor" for="modeloNovoNome">Nome da nova jornada</label>
+              <input id="modeloNovoNome" maxlength="80" autocomplete="off" placeholder="Nova jornada, ex.: Comercial 8h">
+              <button class="botao botao-secundario botao-pequeno" type="submit">Criar</button>
+            </form>
+            <span class="texto-mudo pequeno estado" id="modelosEstado" role="status"></span>
+          </section>
+
+          <section class="cartao jornada" aria-labelledby="jornadaTitulo" id="jornadaEditor" hidden>
+            <div class="cartao-cabeca">
+              <h2 id="jornadaTitulo">Jornada</h2>
+              <button class="botao botao-secundario botao-pequeno" id="jornadaNova" type="button">Nova vigência</button>
+            </div>
+            <form class="modelo-form" id="formModeloNome" novalidate>
+              <label class="so-leitor" for="modeloNome">Nome da jornada</label>
+              <input id="modeloNome" maxlength="80" autocomplete="off">
+              <button class="botao botao-fantasma botao-pequeno" type="submit">Renomear</button>
+              <button class="botao botao-perigo botao-pequeno" id="modeloApagar" type="button">Apagar jornada</button>
+            </form>
+            <p class="texto-mudo pequeno">Carga de cada dia, tolerância e regra do banco. Cada dia é calculado com a versão vigente na data dele: para mudar daqui para a frente, crie uma nova vigência. Editar uma vigência antiga recalcula os dias dela de todos que usam esta jornada.</p>
+            <div class="vigencias" id="jornadaVersoes" role="group" aria-label="Vigências"></div>
+
+            <form class="jornada-form" id="formJornada" novalidate>
+              <label class="jornada-vigencia">Válida a partir de<input type="date" id="jornadaDesde" required></label>
+
+              <div class="jornada-semana">
+                <div class="jornada-linha cabeca-tabela">
+                  <span>Dia</span><span>Entrada</span><span>Saída p/ almoço</span><span>Volta</span><span>Saída</span><span class="num">Carga</span>
+                </div>
+                <div id="jornadaDias"></div>
+              </div>
+
+              <div class="jornada-tolerancia">
+                <label>Tolerância antes (min)<input type="number" id="tolAntes" min="0" max="120" step="1" inputmode="numeric"></label>
+                <label>Tolerância depois (min)<input type="number" id="tolDepois" min="0" max="120" step="1" inputmode="numeric"></label>
+                <div class="segmentado modo" id="modoTolerancia" role="group" aria-label="Modo da tolerância">
+                  <button type="button" data-modo="acumulativo" aria-pressed="true">Acumulativo</button>
+                  <button type="button" data-modo="individual" aria-pressed="false">Individual</button>
+                </div>
+              </div>
+              <p class="texto-mudo pequeno" id="modoExplicacao"></p>
+
+              <div class="jornada-acoes">
+                <button class="botao botao-perigo botao-pequeno" id="jornadaApagar" type="button">Apagar vigência</button>
+                <span class="texto-mudo pequeno estado" id="jornadaEstado" role="status"></span>
+                <button class="botao botao-primario" id="jornadaSalvar" type="submit">Salvar jornada</button>
+              </div>
+            </form>
+          </section>
+        </div>
+
+        <section class="cartao pessoas-jornada" aria-labelledby="pessoasTitulo">
           <div class="cartao-cabeca">
-            <h2>Convidar</h2>
-            <span class="texto-mudo pequeno">o convidado define a senha pelo link do e-mail</span>
+            <h2 id="pessoasTitulo">Quem usa cada jornada</h2>
+            <span class="texto-mudo pequeno">a troca vale a partir da data escolhida; os dias anteriores seguem a jornada que valia</span>
           </div>
-          <form class="convite-campos" id="conviteForm" novalidate>
-            <label>Nome<input id="conviteNome" maxlength="100" autocomplete="off"></label>
-            <label>E-mail<input id="conviteEmail" type="email" maxlength="254" autocomplete="off" required></label>
-            <button class="botao botao-primario" id="conviteEnviar" type="submit">Enviar convite</button>
-            <span class="texto-mudo pequeno" id="conviteEstado" role="status"></span>
-          </form>
-        </aside>
+          <div class="historico-rolagem">
+            <div class="pessoas-tabela" id="pessoasJornada"></div>
+          </div>
+        </section>
       </div>
     </section>
 
@@ -507,40 +585,12 @@
           </section>
         </div>
 
-        <section class="cartao jornada" aria-labelledby="jornadaTitulo">
+        <section class="cartao jornada" aria-labelledby="minhaJornadaTitulo">
           <div class="cartao-cabeca">
-            <h2 id="jornadaTitulo">Jornada e tolerância</h2>
-            <button class="botao botao-secundario botao-pequeno" id="jornadaNova" type="button">Nova vigência</button>
+            <h2 id="minhaJornadaTitulo">Sua jornada</h2>
           </div>
-          <p class="texto-mudo pequeno">Cada dia é calculado com a versão vigente na data dele. Para mudar daqui para a frente, crie uma nova vigência. Editar uma vigência antiga recalcula os dias dela.</p>
-          <div class="vigencias" id="jornadaVersoes" role="group" aria-label="Vigências"></div>
-
-          <form class="jornada-form" id="formJornada" novalidate>
-            <label class="jornada-vigencia">Válida a partir de<input type="date" id="jornadaDesde" required></label>
-
-            <div class="jornada-semana">
-              <div class="jornada-linha cabeca-tabela">
-                <span>Dia</span><span>Entrada</span><span>Saída p/ almoço</span><span>Volta</span><span>Saída</span><span class="num">Carga</span>
-              </div>
-              <div id="jornadaDias"></div>
-            </div>
-
-            <div class="jornada-tolerancia">
-              <label>Tolerância antes (min)<input type="number" id="tolAntes" min="0" max="120" step="1" inputmode="numeric"></label>
-              <label>Tolerância depois (min)<input type="number" id="tolDepois" min="0" max="120" step="1" inputmode="numeric"></label>
-              <div class="segmentado modo" id="modoTolerancia" role="group" aria-label="Modo da tolerância">
-                <button type="button" data-modo="acumulativo" aria-pressed="true">Acumulativo</button>
-                <button type="button" data-modo="individual" aria-pressed="false">Individual</button>
-              </div>
-            </div>
-            <p class="texto-mudo pequeno" id="modoExplicacao"></p>
-
-            <div class="jornada-acoes">
-              <button class="botao botao-perigo botao-pequeno" id="jornadaApagar" type="button">Apagar vigência</button>
-              <span class="texto-mudo pequeno estado" id="jornadaEstado" role="status"></span>
-              <button class="botao botao-primario" id="jornadaSalvar" type="submit">Salvar jornada</button>
-            </div>
-          </form>
+          <div class="minha-jornada" id="minhaJornada"></div>
+          <p class="texto-mudo pequeno">Quem cadastra e altera as jornadas é o ADM da empresa. Cada dia é calculado com a jornada vigente na data dele.</p>
         </section>
       </div>
     </section>
@@ -615,9 +665,9 @@
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12"></path><path d="M7 10l5 5 5-5"></path><path d="M4 20h16"></path></svg>
       <span>Importar</span>
     </a>
-    <a class="capsula-item" href="#usuarios" data-view="usuarios" id="menuUsuarios" hidden>
+    <a class="capsula-item" href="#empresa" data-view="empresa" id="menuEmpresa" hidden>
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"></circle><path d="M2.5 20c.6-3.6 3.2-5.5 6.5-5.5s5.9 1.9 6.5 5.5"></path><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8"></path><path d="M18.5 14.8c1.7.7 2.7 2.4 3 5.2"></path></svg>
-      <span>Usuários</span>
+      <span>Empresa</span>
     </a>
     <a class="capsula-item" href="#perfil" data-view="perfil">
       <span class="avatar" id="navAvatar" aria-hidden="true"></span>

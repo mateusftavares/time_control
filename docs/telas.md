@@ -43,18 +43,26 @@ No **Hoje**, o cartão "Tarefas de hoje" lista as vencidas, as do dia e as em an
 3. O saldo calculado é conferido contra o saldo oficial do espelho. Dias que divergem ficam em laranja, com o valor do TiqueTaque ao lado.
 4. "Gravar" manda tudo num lote só (`gravarLote`) e recarrega do servidor.
 
-## Usuários, só o ADM da empresa (`usuarios.js` + função `usuarios.mjs`)
+## Empresa, só o ADM (`empresa.js`): abas Usuários e Jornadas
+
+### Usuários (`usuarios.js` + função `usuarios.mjs`)
 
 - Lista os membros da empresa: nome, e-mail, papel, situação (Ativo, Inativo ou Convidado, quando o convite ainda não foi aceito) e último acesso.
 - Desativar e reativar. **Transferir o papel de ADM:** escolher "ADM" no papel de um membro ativo; quem transferiu vira usuário e perde esta tela. A linha do ADM fica travada: ele não pode ser rebaixado nem desativado sem transferir antes.
 - **Convidar:** nome e e-mail. O convidado entra como usuário na empresa do ADM, recebe o e-mail e define a senha em `definir-senha.html`.
+
+### Jornadas (`jornadas.js`)
+
+- **Jornadas da empresa:** lista dos modelos, com o resumo da versão vigente e quantas pessoas o usam hoje. "Criar" cadastra um modelo novo pelo nome.
+- **Editor do modelo:** renomear, apagar (só sem ninguém no histórico), vigências e, para a selecionada, a data de início, os horários de cada dia da semana, a tolerância antes e depois e o modo (acumulativo ou individual). "Nova vigência" cria uma versão daqui para a frente. Editar ou apagar uma vigência antiga recalcula os dias dela de todos que usam o modelo, com confirmação.
+- **Quem usa cada jornada:** cada membro com a jornada de hoje, o histórico de atribuições (com ✕ para tirar uma) e "Trocar a partir de": modelo e data. Data no passado pede confirmação, porque recalcula o banco dele.
 
 ## Meu perfil (`perfil.js`)
 
 - **Nome e foto:** a foto é recortada no centro, reduzida para 256×256 em JPEG e enviada ao bucket privado.
 - **Aparência:** cor de destaque (azul, amarelo, verde, vermelho), cartões e barra de navegação (opaco, vidro sutil, vidro líquido) e fundo da tela (liso, manchas cinza, manchas coloridas). A mudança vale na hora e é gravada no perfil, então acompanha o usuário em qualquer aparelho. Se a gravação falhar, volta à opção anterior. Detalhes em [visual-e-aparencia.md](visual-e-aparencia.md).
 - **Trocar senha:** pede a senha atual, a nova (mínimo de 8 caracteres) e a confirmação.
-- **Jornada e tolerância:** lista de vigências e, para a selecionada, a data de início, os horários de cada dia da semana, a tolerância antes e depois e o modo (acumulativo ou individual). "Nova vigência" cria uma versão daqui para a frente. Editar ou apagar uma vigência antiga recalcula os dias dela, com confirmação.
+- **Sua jornada (só leitura):** o modelo de jornada atribuído hoje e desde quando, o resumo (dias, carga e tolerância) e, se houver troca, o histórico. Quem altera é o ADM da empresa.
 - **Sair:** encerra a sessão neste navegador.
 
 ## Telas de acesso

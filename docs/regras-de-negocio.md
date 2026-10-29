@@ -28,12 +28,14 @@ A função central é `avaliar(registro, versoes)` em `regras.js`, que devolve a
 
 ## Jornada por vigência (`jornada.js`)
 
-Cada usuário tem versões de jornada, cada uma válida a partir de uma data (`vigenteDesde`). O dia usa a versão de maior vigência que não passa da data dele (`jornadaDe`).
+As jornadas são da **empresa**: o ADM cadastra modelos (ex.: "Comercial 8h"), cada um com versões válidas a partir de uma data (`vigenteDesde`), e atribui um modelo a cada usuário a partir de uma data. No dia D, vale a atribuição do usuário de maior data que não passa de D e, dentro dela, a versão do modelo de maior vigência que não passa de D. `versoesEfetivas` junta as atribuições e as versões dos modelos numa lista de versões do usuário, e o cálculo segue igual (`jornadaDe`).
 
-- **Sem nenhuma versão, ou antes da primeira, vale o padrão:** seg–sex 08:00–12:00 e 13:00–17:00 (08:00 por dia), tolerância de 10/10, acumulativa.
+- **Sem jornada atribuída, antes da primeira atribuição, ou num modelo ainda sem versão, vale o padrão:** seg–sex 08:00–12:00 e 13:00–17:00 (08:00 por dia), tolerância de 10/10, acumulativa.
 - Cada versão define, por dia da semana, se há expediente e os horários oficiais de entrada, saída para o almoço, volta e saída.
 - **Carga do dia** = da entrada à saída, menos o almoço oficial (`cargaDoExpediente`). Dia sem expediente tem carga 0: tudo o que for trabalhado é saldo positivo e, sem registro, não conta como sem marcação.
-- Para mudar a jornada daqui para a frente, crie uma nova vigência. Editar ou apagar uma vigência antiga recalcula os dias dela.
+- Para mudar a jornada daqui para a frente, crie uma nova vigência no modelo (vale para todos que o usam) ou atribua outro modelo ao usuário a partir de uma data. Editar ou apagar uma vigência antiga, ou uma atribuição com data passada, recalcula os dias dela.
+- Só o ADM da empresa cria e altera jornadas e atribuições. Cada usuário vê a própria jornada no Perfil, só para leitura.
+- A migração `20261030150000_jornadas_da_empresa.sql` transformou as vigências de cada usuário num modelo "Jornada de <nome>", atribuído desde a primeira vigência e com as mesmas versões: o resultado de `versoesEfetivas` é idêntico às vigências antigas (conferido no banco real antes de aplicar).
 
 ## Tolerância
 
