@@ -140,7 +140,8 @@ Os scripts usam `public/shared/` (as mesmas regras do site), `scripts/conferenci
 | `espelho.test.js` | leitura do espelho do TiqueTaque e conferência do saldo |
 | `linhas.test.js` | conversão entre registro e linha do banco |
 | `tarefas.test.js` | validação da tarefa e dos commits, recorrência, ordem de trabalho, tarefas de hoje e ponte com a linha do banco |
-| `regras-usuarios.test.js` | validação dos pedidos da função de usuários e regra do último admin |
+| `regras-usuarios.test.js` | validação dos pedidos da função de usuários e regra do ADM único |
+| `regras-empresas.test.js` | validação dos pedidos da função de empresas, recusa de desativar a própria empresa e montagem da lista |
 | `acesso.test.js` | mensagens de erro do Auth |
 
 O visual não tem teste automatizado. Para conferir uma mudança de CSS sem logar, sirva `public/` localmente e abra o `index.html` com o `main.js` bloqueado, removendo o atributo `data-autenticando` do `<body>`.

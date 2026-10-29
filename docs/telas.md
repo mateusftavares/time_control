@@ -43,7 +43,9 @@ No **Hoje**, o cartão "Tarefas de hoje" lista as vencidas, as do dia e as em an
 3. O saldo calculado é conferido contra o saldo oficial do espelho. Dias que divergem ficam em laranja, com o valor do TiqueTaque ao lado.
 4. "Gravar" manda tudo num lote só (`gravarLote`) e recarrega do servidor.
 
-## Empresa, só o ADM (`empresa.js`): abas Usuários e Jornadas
+## Empresa (`empresa.js`): Usuários e Jornadas para o ADM, Todas as empresas para o super ADM
+
+A cápsula mostra "Empresa" para o ADM da empresa e para o super ADM; cada um vê só as abas do seu papel.
 
 ### Usuários (`usuarios.js` + função `usuarios.mjs`)
 
@@ -56,6 +58,12 @@ No **Hoje**, o cartão "Tarefas de hoje" lista as vencidas, as do dia e as em an
 - **Jornadas da empresa:** lista dos modelos, com o resumo da versão vigente e quantas pessoas o usam hoje. "Criar" cadastra um modelo novo pelo nome.
 - **Editor do modelo:** renomear, apagar (só sem ninguém no histórico), vigências e, para a selecionada, a data de início, os horários de cada dia da semana, a tolerância antes e depois e o modo (acumulativo ou individual). "Nova vigência" cria uma versão daqui para a frente. Editar ou apagar uma vigência antiga recalcula os dias dela de todos que usam o modelo, com confirmação.
 - **Quem usa cada jornada:** cada membro com a jornada de hoje, o histórico de atribuições (com ✕ para tirar uma) e "Trocar a partir de": modelo e data. Data no passado pede confirmação, porque recalcula o banco dele.
+
+### Todas as empresas (`plataforma.js` + função `empresas.mjs`), só o super ADM
+
+- **Nova empresa:** nome da empresa, nome e e-mail do ADM. Cria a empresa e manda o convite; o ADM define a senha pelo link.
+- **Lista:** cada empresa, recolhível, com situação (Ativa ou Desativada), ADM (ou convite pendente) e número de membros. Aberta, mostra os membros (nome, e-mail, papel, situação), "Tornar ADM" para um membro ativo, "Renomear", "Desativar"/"Reativar" (a própria empresa não pode ser desativada) e um convite rápido de usuário para aquela empresa.
+- O super ADM não vê ponto, jornadas nem tarefas das empresas.
 
 ## Meu perfil (`perfil.js`)
 

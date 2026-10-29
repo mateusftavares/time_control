@@ -55,7 +55,7 @@ export function idDoUsuario() {
 export async function carregarPerfil() {
   const { data, error } = await supabase
     .from('perfis')
-    .select('id, nome, email, papel, ativo, super_admin, avatar_path, cor_destaque, superficie, fundo, empresas(nome)')
+    .select('id, nome, email, papel, ativo, super_admin, empresa_id, avatar_path, cor_destaque, superficie, fundo, empresas(nome)')
     .eq('id', idDoUsuario()).maybeSingle();
   if (error) {
     throw error;

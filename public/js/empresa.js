@@ -1,31 +1,60 @@
 import { elementos } from './util.js';
+import { aoTrocarDeTela, telaAtual } from './navegacao.js';
 import { iniciarUsuarios } from './usuarios.js';
 import { iniciarJornadasDaEmpresa, abrirJornadas } from './jornadas.js';
+import { iniciarPlataforma, abrirPlataforma } from './plataforma.js';
 
-const el = elementos(['empresaAbas', 'empresaUsuarios', 'empresaJornadas']);
+const el = elementos(['empresaAbas', 'usuariosEmpresa', 'empresaPapel', 'empresaUsuarios', 'empresaJornadas', 'empresaPlataforma']);
 
+const SECOES = { usuarios: 'empresaUsuarios', jornadas: 'empresaJornadas', plataforma: 'empresaPlataforma' };
+const AO_ABRIR = { jornadas: abrirJornadas, plataforma: abrirPlataforma };
+
+let abaAtual = null;
+
+/* A aba só carrega dados quando a tela Empresa está à vista (cada uma carrega uma vez). */
 function mostrarAba(aba) {
+  abaAtual = aba;
   el.empresaAbas.querySelectorAll('[data-aba]').forEach((botao) => {
     botao.setAttribute('aria-pressed', String(botao.dataset.aba === aba));
   });
-  el.empresaUsuarios.hidden = aba !== 'usuarios';
-  el.empresaJornadas.hidden = aba !== 'jornadas';
-  if (aba === 'jornadas') {
-    abrirJornadas();
+  Object.entries(SECOES).forEach(([chave, id]) => {
+    el[id].hidden = chave !== aba;
+  });
+  if (telaAtual() === 'empresa') {
+    AO_ABRIR[aba]?.();
   }
 }
 
 /**
- * @description Liga a tela Empresa (só o ADM): abas Usuários e Jornadas
- * @param {{id: string, empresas: {nome: string}}} perfil - o ADM logado
+ * @description Liga a tela Empresa: Usuários e Jornadas para o ADM da empresa, Todas as empresas para o super ADM
+ * @param {{id: string, papel: string, super_admin: boolean, empresa_id: string, empresas: {nome: string}}} perfil
  */
 export function iniciarEmpresa(perfil) {
-  iniciarUsuarios(perfil);
-  iniciarJornadasDaEmpresa();
+  const ehAdm = perfil.papel === 'admin';
+  el.usuariosEmpresa.textContent = perfil.empresas?.nome ?? '';
+  el.empresaPapel.textContent = [ehAdm && 'ADM da empresa', perfil.super_admin && 'super ADM da plataforma'].filter(Boolean).join(' · ');
+
+  const abas = [...(ehAdm ? ['usuarios', 'jornadas'] : []), ...(perfil.super_admin ? ['plataforma'] : [])];
+  el.empresaAbas.querySelectorAll('[data-aba]').forEach((botao) => {
+    botao.hidden = !abas.includes(botao.dataset.aba);
+  });
+  if (ehAdm) {
+    iniciarUsuarios(perfil);
+    iniciarJornadasDaEmpresa();
+  }
+  if (perfil.super_admin) {
+    iniciarPlataforma(perfil);
+  }
   el.empresaAbas.addEventListener('click', (evento) => {
     const botao = evento.target.closest('[data-aba]');
-    if (botao) {
+    if (botao && abas.includes(botao.dataset.aba)) {
       mostrarAba(botao.dataset.aba);
     }
   });
+  aoTrocarDeTela((tela) => {
+    if (tela === 'empresa') {
+      AO_ABRIR[abaAtual]?.();
+    }
+  });
+  mostrarAba(abas[0]);
 }

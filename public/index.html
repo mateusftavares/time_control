@@ -406,12 +406,13 @@
       <header class="cabecalho">
         <div class="cabecalho-texto">
           <h1 id="empresaTitulo">Empresa</h1>
-          <p><b id="usuariosEmpresa"></b> · só o ADM vê esta tela (a empresa tem um ADM só).</p>
+          <p><b id="usuariosEmpresa"></b> · <span id="empresaPapel"></span></p>
         </div>
         <div class="cabecalho-acoes">
           <div class="segmentado" id="empresaAbas" role="group" aria-label="Seção da empresa">
             <button type="button" data-aba="usuarios" aria-pressed="true">Usuários</button>
             <button type="button" data-aba="jornadas" aria-pressed="false">Jornadas</button>
+            <button type="button" data-aba="plataforma" aria-pressed="false" hidden>Todas as empresas</button>
           </div>
         </div>
       </header>
@@ -516,6 +517,34 @@
             <div class="pessoas-tabela" id="pessoasJornada"></div>
           </div>
         </section>
+      </div>
+
+      <div class="empresa-secao" id="empresaPlataforma" hidden>
+        <div class="colunas">
+          <section class="cartao empresas-lista" aria-labelledby="empresasTitulo">
+            <div class="cartao-cabeca">
+              <h2 id="empresasTitulo">Todas as empresas</h2>
+              <button class="botao botao-secundario botao-pequeno" id="empresasAtualizar" type="button">Atualizar lista</button>
+            </div>
+            <p class="texto-mudo pequeno">Como super ADM você vê o nome, o ADM e os membros de cada empresa, mas não o ponto, as jornadas nem as tarefas delas.</p>
+            <div class="empresas-corpo" id="empresasCorpo"></div>
+            <p class="texto-mudo" id="empresasEstado">Carregando…</p>
+          </section>
+
+          <aside class="cartao convite" aria-labelledby="novaEmpresaTitulo">
+            <div class="cartao-cabeca">
+              <h2 id="novaEmpresaTitulo">Nova empresa</h2>
+              <span class="texto-mudo pequeno">o ADM recebe o convite por e-mail e define a senha pelo link</span>
+            </div>
+            <form class="convite-campos" id="novaEmpresaForm" novalidate>
+              <label>Nome da empresa<input id="novaEmpresaNome" maxlength="100" autocomplete="off" required></label>
+              <label>Nome do ADM<input id="novaEmpresaAdmNome" maxlength="100" autocomplete="off"></label>
+              <label>E-mail do ADM<input id="novaEmpresaAdmEmail" type="email" maxlength="254" autocomplete="off" required></label>
+              <button class="botao botao-primario" id="novaEmpresaEnviar" type="submit">Criar e convidar</button>
+              <span class="texto-mudo pequeno" id="novaEmpresaEstado" role="status"></span>
+            </form>
+          </aside>
+        </div>
       </div>
     </section>
 

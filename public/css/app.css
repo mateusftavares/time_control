@@ -761,6 +761,28 @@ body[data-autenticando] .shell { visibility: hidden; }
 .atribuir { display: flex; align-items: center; gap: 6px; margin: 0; }
 .atribuir select { max-width: 180px; }
 
+.empresas-lista { flex: 999 1 640px; min-width: 0; }
+.empresas-corpo { display: flex; flex-direction: column; gap: 10px; }
+.empresa-item { border: 1px solid var(--sub-borda); border-radius: 12px; background: var(--painel); }
+.empresa-item > summary {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding: 12px 14px; cursor: pointer; list-style: none;
+}
+.empresa-item > summary::-webkit-details-marker { display: none; }
+.empresa-item > summary::before { content: '›'; color: var(--texto-mudo); font-weight: 700; transition: transform .15s; }
+.empresa-item[open] > summary::before { transform: rotate(90deg); }
+.empresa-item > summary b { font-size: 15px; }
+.empresa-item > summary .texto-mudo { flex-basis: 100%; padding-left: 18px; }
+.empresa-item-acoes { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 14px 10px; }
+.membros-empresa { overflow-x: auto; padding: 0 14px; }
+.membro-empresa {
+  display: grid; grid-template-columns: minmax(110px, 1fr) minmax(150px, 1.4fr) 70px 100px 110px;
+  gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid var(--elevado); font-size: 13px; min-width: 580px;
+}
+.membro-empresa > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.membro-empresa .botao { justify-self: end; }
+.convite-empresa { flex-wrap: wrap; padding: 10px 14px 14px; }
+.convite-empresa input { flex: 1 1 160px; }
+
 .minha-jornada { display: flex; flex-direction: column; gap: 6px; }
 .minha-jornada b { font-size: 15px; }
 .minha-jornada-historico { margin: 4px 0 0; padding-left: 18px; }

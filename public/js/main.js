@@ -77,7 +77,7 @@ async function iniciar() {
 
   aplicarAparencia(aparenciaDoPerfil(perfil));
   document.body.removeAttribute('data-autenticando');
-  if (perfil?.papel === 'admin') {
+  if (perfil?.papel === 'admin' || perfil?.super_admin) {
     liberarTela('empresa');
     el.menuEmpresa.hidden = false;
     iniciarEmpresa(perfil);

@@ -19,7 +19,7 @@ O nome é um trocadilho com *time* e *ever*, por isso a grafia **TimEver**, com 
 
 - **Front:** HTML, CSS e JavaScript puros, em módulos ES, sem build. O que está em `public/` é o que vai para o ar.
 - **Banco e login:** Supabase (Postgres com RLS e Auth). O navegador fala direto com o Supabase usando a chave pública. Quem limita o acesso aos dados é a RLS, não o front.
-- **Única peça de servidor:** a Netlify Function `netlify/functions/usuarios.mjs`, para a tela de Usuários do admin. Só ela usa a service role.
+- **Peças de servidor:** as Netlify Functions `usuarios.mjs` (aba Usuários, do ADM da empresa) e `empresas.mjs` (aba Todas as empresas, do super ADM). Só elas usam a service role.
 - **Regras de cálculo:** ficam em `public/shared/`. São funções puras, usadas pelo navegador, pelos scripts de conferência e pelos testes.
 - **Testes:** `npm test` (Node `node:test`). Eles cobrem as regras, a leitura do espelho, a validação de usuários e o mapeamento de linhas.
 

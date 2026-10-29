@@ -1,46 +1,21 @@
 import { elementos } from './util.js';
-import { tokenAtual, sair } from './sessao.js';
+import { chamarFuncao } from './funcoes.js';
 import { aoTrocarDeTela, telaAtual } from './navegacao.js';
 
-const ENDERECO = '/api/usuarios';
 const ROTULO_PAPEL = { usuario: 'Usuário', admin: 'ADM' };
 const FORMATO_DATA_HORA = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
 
 const el = elementos([
   'usuariosCorpo', 'usuariosEstado', 'usuariosAtualizar',
-  'conviteForm', 'conviteNome', 'conviteEmail', 'conviteEnviar', 'conviteEstado', 'usuariosEmpresa',
+  'conviteForm', 'conviteNome', 'conviteEmail', 'conviteEnviar', 'conviteEstado',
 ]);
 
 let idDoAdmin = null;
 let carregou = false;
 let ocupado = false;
 
-/**
- * @description Chama a função de servidor de usuários (Netlify), que confere se quem chama é admin ativo
- * @param {object} pedido - { acao, ... }
- * @returns {Promise<object>}
- */
-async function chamar(pedido) {
-  let resposta;
-  try {
-    resposta = await fetch(ENDERECO, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tokenAtual()}` },
-      body: JSON.stringify(pedido),
-    });
-  } catch {
-    throw new Error('a função de usuários não respondeu');
-  }
-
-  const dados = await resposta.json().catch(() => null);
-  if (resposta.status === 401) {
-    sair('expirada');
-  }
-  if (!resposta.ok) {
-    throw new Error(dados?.erro ?? `HTTP ${resposta.status}`);
-  }
-  return dados;
-}
+/* A função confere se quem chama é o ADM ativo da empresa. */
+const chamar = (pedido) => chamarFuncao('/api/usuarios', pedido);
 
 function texto(tag, conteudo, classe) {
   const elemento = document.createElement(tag);
@@ -207,11 +182,10 @@ async function convidar(evento) {
 
 /**
  * @description Liga a tela de Usuários (só o ADM da empresa); a lista carrega na primeira vez que a tela abre
- * @param {{id: string, empresas: {nome: string}}} perfil - o ADM logado
+ * @param {{id: string}} perfil - o ADM logado
  */
 export function iniciarUsuarios(perfil) {
   idDoAdmin = perfil.id;
-  el.usuariosEmpresa.textContent = perfil.empresas.nome;
   el.usuariosAtualizar.addEventListener('click', carregar);
   el.conviteForm.addEventListener('submit', convidar);
 

@@ -17,6 +17,7 @@ Ponto do dia, banco de horas e pomodoro, na web. O nome junta *time* e *ever*.
 | **Importar** | Lê o espelho do TiqueTaque colado e confere cada dia contra o saldo oficial antes de gravar. |
 | **Pomodoro** | Popup no topo: foco de 25 min, descanso de 5 min e longo de 10 min, com pausas por motivo e foco por tarefa. |
 | **Empresa** (ADM) | Usuários: convidar, desativar, reativar e transferir o papel de ADM. Jornadas: modelos com vigência, tolerância e regra do banco, e quem usa cada um a partir de quando. |
+| **Todas as empresas** (super ADM) | Criar empresa com o ADM, convidar, renomear, desativar e reativar, e transferir o ADM de qualquer empresa. |
 | **Meu perfil** | Nome, foto, aparência (cor, vidro e fundo), senha e a jornada atribuída (só leitura). |
 
 O app pode ser instalado no celular pelo navegador (no iPhone: Safari → Compartilhar → Adicionar à Tela de Início).
@@ -50,8 +51,8 @@ public/                  o site publicado (index, login, definir-senha, manifest
   js/                    módulos das telas, sessão, API e aparência
   shared/                regras de cálculo puras, usadas também pelos scripts e testes
   img/                   logo SVG e ícones PNG do app
-netlify/functions/       usuarios.mjs: única peça com a service role
-src/regras-usuarios.js   validação dos pedidos da função de usuários
+netlify/functions/       usuarios.mjs (ADM) e empresas.mjs (super ADM): únicas peças com a service role
+src/                     servidor.js (peças comuns das funções), regras-usuarios.js e regras-empresas.js (validação)
 supabase/migrations/     schema, RLS e triggers
 scripts/                 migração do app antigo e conferências do banco de horas
 test/                    node --test

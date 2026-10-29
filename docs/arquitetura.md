@@ -10,7 +10,8 @@ navegador (public/, módulos ES)
    │                                                                   ├─ Auth (login, convite, recuperação)
    │                                                                   └─ Storage (bucket privado "avatares")
    │
-   └── POST /api/usuarios (JWT) ──▶ Netlify Function usuarios.mjs ── service role ──▶ Supabase Admin API
+   ├── POST /api/usuarios (JWT) ──▶ Netlify Function usuarios.mjs ── service role ──▶ Supabase Admin API
+   └── POST /api/empresas (JWT) ──▶ Netlify Function empresas.mjs ── service role ──▶ Supabase Admin API
 ```
 
 - **Não há build.** O Netlify publica a pasta `public/` como está (`netlify.toml`: `publish = "public"`). Os módulos são carregados pelo navegador com `<script type="module">`.
@@ -57,7 +58,9 @@ navegador (public/, módulos ES)
 | `pomodoro.js` | Pomodoro: popup do topo, contagem, pausas com motivo, som, atalho Espaço e gravação periódica. Também guarda a tarefa em foco e soma nela o tempo de foco a cada gravação (`focarEm`, `tarefaEmFoco`). |
 | `perfil.js` | Meu perfil: nome, foto, aparência, troca de senha e a jornada atribuída (só leitura). Carrega as jornadas do usuário (`versoesEfetivas`) para o cálculo. |
 | `aparencia.js` | Lista das preferências visuais (cor, cartões, fundo) e aplicação delas no `<html>`. |
-| `empresa.js` | Tela Empresa (ADM): troca entre as abas Usuários e Jornadas. |
+| `empresa.js` | Tela Empresa: abas Usuários e Jornadas para o ADM da empresa e Todas as empresas para o super ADM. Cada aba carrega na primeira vez que aparece. |
+| `funcoes.js` | Chamada às funções de servidor (`/api/usuarios`, `/api/empresas`) com o JWT da sessão. |
+| `plataforma.js` | Aba Todas as empresas (super ADM). Chama `/api/empresas`. |
 | `usuarios.js` | Aba Usuários da Empresa. Chama `/api/usuarios`. |
 | `jornadas.js` | Aba Jornadas da Empresa: modelos, vigências e atribuições. Depois de cada mudança, recalcula o banco do próprio ADM. |
 | `login.js`, `definir-senha.js`, `acesso.js` | Telas de acesso e mensagens de erro do Auth em português. |
@@ -94,7 +97,20 @@ navegador (public/, módulos ES)
 - **Pomodoro:** um registro por usuário e dia, com o estado em JSON. É gravado a cada 5 s enquanto roda e logo em cada mudança de estado.
 - **Virada do dia:** o pomodoro e as telas percebem a troca de data e começam o dia novo zerado. O dia anterior fica gravado como estava.
 
-## Função de usuários (`netlify/functions/usuarios.mjs`)
+## Funções de servidor (`netlify/functions/`)
+
+As duas usam a service role e dividem as peças de `src/servidor.js`: `atender` (só POST, corpo de até 4 KB, erro vira JSON), `autenticar` (JWT no Auth + perfil de quem chama), `convidarParaEmpresa` (recusa e-mail que já tem perfil, convida, coloca na empresa com o papel pedido e desfaz o convite se isso falhar) e `erroDoBanco` (a trava de ADM vira 409).
+
+### Empresas (`empresas.mjs`, só o super ADM)
+
+- `POST /api/empresas` com `{ acao, ... }`: `listar`, `criar`, `convidar`, `renomear`, `desativar`, `reativar` e `transferirAdm`. Exige `perfis.super_admin` e perfil ativo.
+- Lê empresas e membros (nome, e-mail, papel, situação, último acesso) de todas as empresas, mas **nunca** dados de trabalho (ponto, jornadas, tarefas).
+- **Criar** insere a empresa e convida o ADM dela já com `papel = 'admin'`, numa gravação só (o trigger adiado confere no fim que a empresa tem ADM). Se o convite falhar, a empresa, ainda vazia, é apagada.
+- **Desativar** corta na hora o acesso de todos os membros (`perfil_ativo()` exige empresa ativa). O super ADM não pode desativar a própria empresa.
+- **Transferir o ADM** segue a mesma regra da tela de Usuários (`recusaDaMudanca`) e usa `transferir_adm`.
+- Validação e montagem da lista em `src/regras-empresas.js`, puras e testadas.
+
+### Usuários (`usuarios.mjs`, só o ADM da empresa)
 
 - `POST /api/usuarios` com `{ acao, ... }`. As ações são `listar`, `convidar`, `alterarPapel`, `desativar` e `reativar`.
 - Confere o JWT no Supabase Auth e exige que o dono seja o **ADM ativo de uma empresa ativa**. Lista e altera só os perfis da empresa dele.
