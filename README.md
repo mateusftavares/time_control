@@ -12,11 +12,10 @@ Ponto do dia, banco de horas e pomodoro, na web. O nome junta *time* e *ever*.
 | Tela | Resumo |
 |---|---|
 | **Hoje** | Bater ponto (botão ou Enter), previsão de saída com almoço mínimo de 1 h, linha do dia e correção das marcações. |
-| **Banco de horas** | Saldo acumulado, gráfico do saldo por mês, histórico por mês e editor de dia (feriado, folga, compensação). |
+| **Ponto** | Meu ponto: saldo acumulado, gráfico do saldo por mês, histórico por mês, editor de dia (feriado, folga, compensação) e o Importar do TiqueTaque em pop-up. Equipe (ADM): banco de horas e histórico de cada pessoa, só leitura. |
 | **Tarefas** | Demandas do trabalho em lista ou Kanban: cliente, prazo, prioridade, checklist, anotações, commits, recorrência e o tempo de foco do pomodoro. |
-| **Importar** | Lê o espelho do TiqueTaque colado e confere cada dia contra o saldo oficial antes de gravar. |
 | **Pomodoro** | Popup no topo: foco de 25 min, descanso de 5 min e longo de 10 min, com pausas por motivo e foco por tarefa. |
-| **Empresa** (ADM) | Usuários: convidar, desativar, reativar e transferir o papel de ADM. Jornadas: modelos com vigência, tolerância e regra do banco, e quem usa cada um a partir de quando. Ponto da equipe: banco de horas e histórico de cada membro, só leitura. |
+| **Configurações** (ADM) | Usuários: convidar, desativar, reativar e transferir o papel de ADM. Jornadas: modelos com vigência, tolerância e regra do banco, e quem usa cada um a partir de quando. Tarefas: status em uso, commits e clientes. |
 | **Todas as empresas** (super ADM) | Criar empresa com o ADM, convidar, renomear, desativar e reativar, e transferir o ADM de qualquer empresa. |
 | **Meu perfil** | Nome, foto, aparência (cor, vidro e fundo), senha e a jornada atribuída (só leitura). |
 

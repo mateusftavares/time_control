@@ -7,7 +7,7 @@ import { api } from './api.js';
 import { elementos } from './util.js';
 import { recarregarMinhaJornada } from './perfil.js';
 
-/* Aba Jornadas da tela Empresa (só o ADM): modelos de jornada, as vigências de cada um e quem usa qual. */
+/* Aba Jornadas da tela Configurações (só o ADM): modelos de jornada, as vigências de cada um e quem usa qual. */
 
 const EXPLICACAO_DO_MODO = {
   acumulativo: 'Acumulativo: soma o dia inteiro e compara com a carga. Se o saldo do dia ficar até "antes" minutos abaixo '

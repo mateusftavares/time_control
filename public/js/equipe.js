@@ -5,10 +5,11 @@ import { resumoDoBanco, ROTULO_DO_ESTADO, ESTADOS_ABONADOS } from '/shared/banco
 import { api } from './api.js';
 import { elementos } from './util.js';
 
-/* Aba Ponto da equipe da tela Empresa (só o ADM): banco de horas e histórico de cada membro, só leitura.
-   O cálculo é o mesmo da tela Banco, com os dias e a jornada da pessoa escolhida. */
+/* Aba Equipe da tela Ponto (só o ADM): banco de horas e histórico de cada membro, só leitura.
+   O cálculo é o mesmo do "Meu ponto", com os dias e a jornada da pessoa escolhida. */
 
 const el = elementos([
+  'pontoAbas', 'pontoMeu', 'pontoEquipe', 'filtros', 'btnImportar',
   'equipeMembro', 'equipeJornada', 'equipeEstado',
   'equipeBanco', 'equipeBancoCap', 'equipeMes', 'equipeMesCap', 'equipeTrabalhado', 'equipePendentes', 'equipeCorpo',
 ]);
@@ -164,9 +165,30 @@ export async function abrirEquipe() {
   }
 }
 
+/* Os filtros e o Importar são do "Meu ponto": na aba Equipe somem. */
+function mostrarAba(aba) {
+  el.pontoAbas.querySelectorAll('[data-aba]').forEach((botao) => {
+    botao.setAttribute('aria-pressed', String(botao.dataset.aba === aba));
+  });
+  el.pontoMeu.hidden = aba !== 'meu';
+  el.pontoEquipe.hidden = aba !== 'equipe';
+  el.filtros.hidden = aba !== 'meu';
+  el.btnImportar.hidden = aba !== 'meu';
+  if (aba === 'equipe') {
+    abrirEquipe();
+  }
+}
+
 /**
- * @description Liga a aba Ponto da equipe (só o ADM chega aqui)
+ * @description Liga a aba Equipe da tela Ponto (só o ADM chega aqui) e mostra as abas Meu ponto / Equipe
  */
 export function iniciarEquipe() {
+  el.pontoAbas.hidden = false;
+  el.pontoAbas.addEventListener('click', (evento) => {
+    const botao = evento.target.closest('[data-aba]');
+    if (botao) {
+      mostrarAba(botao.dataset.aba);
+    }
+  });
   el.equipeMembro.addEventListener('change', () => mostrarPessoa(el.equipeMembro.value));
 }

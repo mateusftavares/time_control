@@ -3,22 +3,20 @@ import { aoTrocarDeTela, telaAtual } from './navegacao.js';
 import { iniciarUsuarios } from './usuarios.js';
 import { iniciarJornadasDaEmpresa, abrirJornadas } from './jornadas.js';
 import { iniciarPlataforma, abrirPlataforma } from './plataforma.js';
-import { iniciarEquipe, abrirEquipe } from './equipe.js';
 import { iniciarConfigTarefas, abrirConfigTarefas } from './config-tarefas.js';
 
 const el = elementos([
-  'empresaAbas', 'usuariosEmpresa', 'empresaPapel', 'empresaUsuarios', 'empresaJornadas', 'empresaEquipe', 'empresaTarefas',
-  'empresaPlataforma',
+  'empresaAbas', 'usuariosEmpresa', 'empresaPapel', 'empresaUsuarios', 'empresaJornadas', 'empresaTarefas', 'empresaPlataforma',
 ]);
 
 const SECOES = {
-  usuarios: 'empresaUsuarios', jornadas: 'empresaJornadas', equipe: 'empresaEquipe', tarefas: 'empresaTarefas', plataforma: 'empresaPlataforma',
+  usuarios: 'empresaUsuarios', jornadas: 'empresaJornadas', tarefas: 'empresaTarefas', plataforma: 'empresaPlataforma',
 };
-const AO_ABRIR = { jornadas: abrirJornadas, equipe: abrirEquipe, tarefas: abrirConfigTarefas, plataforma: abrirPlataforma };
+const AO_ABRIR = { jornadas: abrirJornadas, tarefas: abrirConfigTarefas, plataforma: abrirPlataforma };
 
 let abaAtual = null;
 
-/* A aba só carrega dados quando a tela Empresa está à vista (cada uma carrega uma vez). */
+/* A aba só carrega dados quando a tela Configurações está à vista (cada uma carrega uma vez). */
 function mostrarAba(aba) {
   abaAtual = aba;
   el.empresaAbas.querySelectorAll('[data-aba]').forEach((botao) => {
@@ -27,13 +25,13 @@ function mostrarAba(aba) {
   Object.entries(SECOES).forEach(([chave, id]) => {
     el[id].hidden = chave !== aba;
   });
-  if (telaAtual() === 'empresa') {
+  if (telaAtual() === 'configuracoes') {
     AO_ABRIR[aba]?.();
   }
 }
 
 /**
- * @description Liga a tela Empresa: Usuários, Jornadas, Ponto da equipe e Tarefas para o ADM da empresa; Todas as empresas
+ * @description Liga a tela Configurações: Usuários, Jornadas e Tarefas para o ADM da empresa; Todas as empresas
  *   para o super ADM
  * @param {{id: string, papel: string, super_admin: boolean, empresa_id: string, empresas: {nome: string}}} perfil
  */
@@ -42,14 +40,13 @@ export function iniciarEmpresa(perfil) {
   el.usuariosEmpresa.textContent = perfil.empresas?.nome ?? '';
   el.empresaPapel.textContent = [ehAdm && 'ADM da empresa', perfil.super_admin && 'super ADM da plataforma'].filter(Boolean).join(' · ');
 
-  const abas = [...(ehAdm ? ['usuarios', 'jornadas', 'equipe', 'tarefas'] : []), ...(perfil.super_admin ? ['plataforma'] : [])];
+  const abas = [...(ehAdm ? ['usuarios', 'jornadas', 'tarefas'] : []), ...(perfil.super_admin ? ['plataforma'] : [])];
   el.empresaAbas.querySelectorAll('[data-aba]').forEach((botao) => {
     botao.hidden = !abas.includes(botao.dataset.aba);
   });
   if (ehAdm) {
     iniciarUsuarios(perfil);
     iniciarJornadasDaEmpresa();
-    iniciarEquipe();
     iniciarConfigTarefas();
   }
   if (perfil.super_admin) {
@@ -62,7 +59,7 @@ export function iniciarEmpresa(perfil) {
     }
   });
   aoTrocarDeTela((tela) => {
-    if (tela === 'empresa') {
+    if (tela === 'configuracoes') {
       AO_ABRIR[abaAtual]?.();
     }
   });

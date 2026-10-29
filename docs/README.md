@@ -32,5 +32,5 @@ O nome é um trocadilho com *time* e *ever*, por isso a grafia **TimEver**, com 
 | Saldo | Trabalhado menos a carga, já com a tolerância aplicada. |
 | Banco acumulado | Soma dos saldos de todos os dias do histórico. |
 | Vigência | Versão da jornada do usuário, válida a partir de uma data. |
-| Espelho | Relatório do TiqueTaque (sistema oficial de ponto) que a tela Importar lê. |
+| Espelho | Relatório do TiqueTaque (sistema oficial de ponto) que o pop-up Importar lê. |
 | Dia abonado | Feriado, folga ou compensação. |

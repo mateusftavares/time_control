@@ -190,11 +190,11 @@ export function iniciarUsuarios(perfil) {
   el.conviteForm.addEventListener('submit', convidar);
 
   aoTrocarDeTela((tela) => {
-    if (tela === 'empresa' && !carregou && !ocupado) {
+    if (tela === 'configuracoes' && !carregou && !ocupado) {
       carregar();
     }
   });
-  if (telaAtual() === 'empresa') {
+  if (telaAtual() === 'configuracoes') {
     carregar();
   }
 }

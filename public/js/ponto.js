@@ -28,7 +28,7 @@ const el = elementos([
   'chegada', 'almocoIni', 'almocoFim', 'saida', 'carga',
   'erroChegada', 'erroAlmocoIni', 'erroAlmocoFim', 'erroSaida',
   'trabalhado', 'capTrabalhado', 'labelRestante', 'restante', 'capRestante', 'almoco', 'capAlmoco',
-  'formula', 'btnLimpar',
+  'formula', 'btnLimpar', 'hojeDetalhes', 'hojeDetalhesBotao',
 ]);
 
 const ERRO = { chegada: el.erroChegada, almocoIni: el.erroAlmocoIni, almocoFim: el.erroAlmocoFim, saida: el.erroSaida };
@@ -359,6 +359,27 @@ function atalhoDeEnter(evento) {
   baterPonto();
 }
 
+/* Marcações e números ficam recolhidos: abrem pelo card da linha do tempo (clique em qualquer
+   parte dele) ou pelo botão dentro do card, que é o caminho do teclado. */
+function alternarDetalhes() {
+  const abrir = el.hojeDetalhes.hidden;
+  el.hojeDetalhes.hidden = !abrir;
+  el.hojeDetalhesBotao.setAttribute('aria-expanded', String(abrir));
+  el.hojeDetalhesBotao.querySelector('span').textContent = abrir ? 'Ocultar marcações e números' : 'Ver marcações e números';
+}
+
+function ligarDetalhes() {
+  el.hojeDetalhesBotao.addEventListener('click', (evento) => {
+    evento.stopPropagation();
+    alternarDetalhes();
+  });
+  el.cardPonto.addEventListener('click', () => {
+    if (!window.getSelection()?.toString()) {
+      alternarDetalhes();
+    }
+  });
+}
+
 /**
  * @description Liga a tela Hoje; o registro de hoje vem do store, já carregado
  */
@@ -393,6 +414,7 @@ export function iniciarPonto() {
     render();
   });
   document.addEventListener('keydown', atalhoDeEnter);
+  ligarDetalhes();
 
   render();
   setInterval(render, 1000);

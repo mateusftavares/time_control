@@ -3,7 +3,7 @@ import { api } from './api.js';
 import * as store from './tarefas-store.js';
 import { elementos } from './util.js';
 
-/* Aba Tarefas da tela Empresa (só o ADM): status em uso, bloco de commits e cadastro de clientes.
+/* Aba Tarefas da tela Configurações (só o ADM): status em uso, bloco de commits e cadastro de clientes.
    Depois de cada mudança a store recarrega, e a tela de Tarefas acompanha. */
 
 const OBRIGATORIOS = ['a_fazer', 'concluida'];

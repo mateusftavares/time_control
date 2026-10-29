@@ -6,7 +6,7 @@ Todas as telas do app estão em `public/index.html`, como `<section class="tela"
 
 - **Cabeçalho (`.topo`):** logo TimEver e uma faixa de resumo com banco acumulado, saldo do mês atual, dias sem marcação, saída prevista e o mini pomodoro. Quem pinta os números do resumo é `mes.js`; a saída prevista vem de `ponto.js`.
 - **Mini pomodoro e popup:** "Pomodoro 25:00 ⌄" é um botão (`#pomoAbrir`) que abre o pomodoro completo num popup logo abaixo (`#pomoPopup`). O popup fecha clicando fora ou com Esc. O botão ao lado ("Começar foco", "Pausar" ou "Voltar ao trabalho") age sem abrir o popup, exceto na pausa, que abre o popup para perguntar o motivo. No celular, o pomodoro vai para o começo da faixa de resumo, que rola para o lado.
-- **Cápsula de navegação (`.capsula`):** barra flutuante embaixo, no estilo do iOS, com Hoje, Banco, Tarefas, Importar, Usuários (só admin) e Perfil (com a foto). O item ativo fica mais largo que os outros, em formato de cápsula.
+- **Cápsula de navegação (`.capsula`):** barra flutuante embaixo, no estilo do iOS, com Hoje, Ponto, Tarefas, Configurações (só o ADM e o super ADM) e Perfil (com a foto). O item ativo fica mais largo que os outros, em formato de cápsula.
 - **Faixa de erro (`#aviso`):** aparece quando uma chamada ao Supabase falha e some na próxima que der certo.
 - **Título da aba:** com o pomodoro rodando, mostra o tempo dele; senão, a saída prevista; sem nenhum dos dois, "TimEver".
 
@@ -14,12 +14,15 @@ Todas as telas do app estão em `public/index.html`, como `<section class="tela"
 
 - **Previsão de saída:** o horário em que a jornada fecha, contando o almoço mínimo de 1 h ainda não tirado. Abaixo vem quanto falta de trabalho e de almoço, e ao lado a fase do dia com o percentual da jornada. As fases são Informe a chegada, Trabalhando, Em almoço, Jornada cumprida, Dia encerrado e Corrija as marcações.
 - **Linha do dia:** barra horizontal com o trabalhado, o almoço, o previsto e o "agora". A janela se ajusta ao dia, das 08h às 18h no mínimo.
+- **Marcações e números recolhidos:** o Hoje mostra a previsão com a linha do dia e as tarefas. Clicar no card da previsão (ou no botão "Ver marcações e números" dentro dele) abre as marcações, os números e a fórmula; outro clique recolhe.
 - **Marcações:** quatro cartões editáveis (`input type="time"`). A próxima a bater fica destacada. Horário fora de ordem ou no futuro aparece com o erro embaixo e não é gravado.
 - **Bater ponto (botão ou Enter):** grava o horário atual na próxima marcação vazia. O Enter só vale na tela Hoje e fora de campos de texto.
 - **Números:** trabalhado, falta, almoço e jornada do dia. A jornada do dia é editável e grava a `carga` do registro, que vence a jornada vigente para aquele dia.
 - **Limpar o dia:** esvazia as quatro marcações de hoje e grava, sem pedir confirmação. A jornada do dia e o tipo continuam como estavam.
 
-## Banco de horas (`mes.js`)
+## Ponto (`mes.js` + `equipe.js`): Meu ponto e, para o ADM, Equipe
+
+O antigo "Banco de horas". O ADM vê as abas **Meu ponto** e **Equipe**; os filtros e o Importar são do Meu ponto.
 
 - **Cartões no topo:** banco acumulado, trabalhado no mês, dias sem marcação e o gráfico **Saldo por mês** (últimos 12 meses, barra verde para positivo e laranja para negativo, com o mês atual destacado).
 - **Histórico:** meses recolhíveis (o atual começa aberto), com o resumo do mês na linha do cabeçalho. Cada dia mostra a situação, as quatro marcações, o trabalhado e o saldo.
@@ -39,16 +42,18 @@ As tarefas são da **empresa**: todos os membros veem e editam. Cada tarefa tem 
 
 No **Hoje**, o cartão "Tarefas de hoje" lista as suas vencidas, as do dia e as em andamento, com as mesmas ações.
 
-## Importar do TiqueTaque (`importacao.js` + `shared/espelho.js`)
+## Importar do TiqueTaque (`importacao.js` + `shared/espelho.js`): pop-up do Ponto
+
+Abre pelo botão "Importar do TiqueTaque" do Meu ponto (`<dialog>` modal, tela cheia no celular; fecha no X, no Esc ou clicando fora). Fechar não apaga o que foi colado.
 
 1. O usuário abre o espelho do mês no TiqueTaque, seleciona a tabela, copia e cola no campo da esquerda.
 2. O texto é lido sozinho enquanto é colado. Cada dia vira uma linha à direita, classificada como **a gravar**, **pulado** (dia que já existe, a menos que "Sobrescrever" esteja marcado) ou **inválido**.
 3. O saldo calculado é conferido contra o saldo oficial do espelho. Dias que divergem ficam em laranja, com o valor do TiqueTaque ao lado.
 4. "Gravar" manda tudo num lote só (`gravarLote`) e recarrega do servidor.
 
-## Empresa (`empresa.js`): Usuários, Jornadas e Ponto da equipe para o ADM, Todas as empresas para o super ADM
+## Configurações (`empresa.js`): Usuários, Jornadas e Tarefas para o ADM, Todas as empresas para o super ADM
 
-A cápsula mostra "Empresa" para o ADM da empresa e para o super ADM; cada um vê só as abas do seu papel.
+A cápsula mostra "Configurações" para o ADM da empresa e para o super ADM; cada um vê só as abas do seu papel.
 
 ### Usuários (`usuarios.js` + função `usuarios.mjs`)
 
@@ -62,11 +67,11 @@ A cápsula mostra "Empresa" para o ADM da empresa e para o super ADM; cada um v�
 - **Editor do modelo:** renomear, apagar (só sem ninguém no histórico), vigências e, para a selecionada, a data de início, os horários de cada dia da semana, a tolerância antes e depois e o modo (acumulativo ou individual). "Nova vigência" cria uma versão daqui para a frente. Editar ou apagar uma vigência antiga recalcula os dias dela de todos que usam o modelo, com confirmação.
 - **Quem usa cada jornada:** cada membro com a jornada de hoje, o histórico de atribuições (com ✕ para tirar uma) e "Trocar a partir de": modelo e data. Data no passado pede confirmação, porque recalcula o banco dele.
 
-### Ponto da equipe (`equipe.js`), só o ADM
+### Equipe (`equipe.js`, aba da tela Ponto), só o ADM
 
 - Escolha a pessoa: aparecem a jornada dela hoje, o banco acumulado, o saldo e o trabalhado do mês e os dias sem marcação.
 - Embaixo, o histórico por mês (o atual aberto), com as marcações, o trabalhado e o saldo de cada dia. É só leitura: cada pessoa corrige o próprio ponto.
-- O cálculo é o mesmo da tela Banco, com os dias e a jornada da pessoa escolhida.
+- O cálculo é o mesmo do Meu ponto, com os dias e a jornada da pessoa escolhida.
 
 ### Tarefas (`config-tarefas.js`), só o ADM
 

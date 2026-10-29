@@ -33,7 +33,7 @@ navegador (public/, módulos ES)
 
 | Arquivo | Papel |
 |---|---|
-| `index.html` | O app: telas Hoje, Banco de horas, Importar, Usuários (admin) e Meu perfil. As telas são `<section class="tela" data-view="...">`, e só a atual fica visível. |
+| `index.html` | O app: telas Hoje, Ponto, Tarefas, Configurações (ADM e super ADM) e Meu perfil, mais os pop-ups do Importar e do editor de tarefa. As telas são `<section class="tela" data-view="...">`; o `navegacao.js` mostra uma por vez. |
 | `login.html` | Login em cartão de vidro e "Esqueci a senha". |
 | `definir-senha.html` | Destino dos links de convite e de recuperação de senha. |
 | `manifest.webmanifest` | Torna o site instalável como app (ver [visual-e-aparencia.md](visual-e-aparencia.md)). |
@@ -42,7 +42,7 @@ navegador (public/, módulos ES)
 
 | Módulo | Responsabilidade |
 |---|---|
-| `main.js` | Ponto de entrada do app. Exige sessão, carrega o perfil, aplica a aparência, libera a tela Empresa para o ADM, carrega jornadas e dias e liga as telas, nessa ordem. |
+| `main.js` | Ponto de entrada do app. Exige sessão, carrega o perfil, aplica a aparência, libera a tela Configurações para o ADM e o super ADM (e a aba Equipe do Ponto para o ADM), carrega jornadas e dias e liga as telas, nessa ordem. |
 | `config.js` | URL do Supabase e anon key (públicas). |
 | `supabase.js` | Cria o cliente supabase-js. Guarda a sessão no `localStorage` com "Lembrar de mim" e no `sessionStorage` sem ele. Usa o fluxo *implicit*, porque o convite é aberto num navegador diferente do de quem convidou e o PKCE não funcionaria. |
 | `hash-inicial.js` | Lê o `#hash` da URL antes do supabase-js limpá-lo, para detectar link de convite, de recuperação ou expirado. Precisa ser importado antes de `supabase.js`. |
@@ -51,20 +51,20 @@ navegador (public/, módulos ES)
 | `registros.js` | Fonte única dos dias carregados. Ponto e banco de horas leem e escrevem aqui. Junta rajadas de digitação numa gravação só (800 ms) e manda o pendente ao fechar a aba (`pagehide`). Quem assina recebe `{ dia, origem }` a cada mudança. |
 | `tarefas-store.js` | Fonte única das tarefas da empresa, dos clientes, dos colegas e da configuração das tarefas. A tela de Tarefas, o bloco do Hoje e o pomodoro leem daqui (`minhas()` para o que é do usuário). Um cliente digitado é achado no cadastro ou criado. Concluir uma tarefa recorrente cria a próxima ocorrência; o foco do pomodoro é somado com `somarFoco`. |
 | `tarefas.js` | Tela Tarefas (lista, Kanban com arrastar e soltar, filtros, busca, editor lateral com checklist e commits) e o bloco "Tarefas de hoje" da tela Hoje. |
-| `navegacao.js` | Troca de telas pelo `#hash` (`#hoje`, `#banco`, `#tarefas`, `#importar`, `#perfil`, `#usuarios`). Também marca o item ativo da cápsula e avisa os ouvintes quando a tela muda. |
+| `navegacao.js` | Troca de telas pelo `#hash` (`#hoje`, `#ponto`, `#tarefas`, `#perfil`, `#configuracoes`). Também marca o item ativo da cápsula. |
 | `ponto.js` | Tela Hoje: marcações, previsão de saída, linha do dia e atalho Enter. |
-| `mes.js` | Tela Banco de horas: histórico por mês, editor de dia, gráfico de saldo por mês e o resumo do topo. |
-| `importacao.js` | Tela Importar: lê o espelho colado e confere cada dia contra o saldo oficial antes de gravar. |
+| `mes.js` | Tela Ponto, aba Meu ponto: histórico por mês, editor de dia, gráfico de saldo por mês e o resumo do topo. |
+| `importacao.js` | Pop-up Importar (aberto pelo Ponto): lê o espelho colado e confere cada dia contra o saldo oficial antes de gravar. |
 | `pomodoro.js` | Pomodoro: popup do topo, contagem, pausas com motivo, som, atalho Espaço e gravação periódica. Também guarda a tarefa em foco e soma nela o tempo de foco a cada gravação (`focarEm`, `tarefaEmFoco`). |
 | `perfil.js` | Meu perfil: nome, foto, aparência, troca de senha e a jornada atribuída (só leitura). Carrega as jornadas do usuário (`versoesEfetivas`) para o cálculo. |
 | `aparencia.js` | Lista das preferências visuais (cor, cartões, fundo) e aplicação delas no `<html>`. |
-| `empresa.js` | Tela Empresa: abas Usuários e Jornadas para o ADM da empresa e Todas as empresas para o super ADM. Cada aba carrega na primeira vez que aparece. |
+| `empresa.js` | Tela Configurações: abas Usuários, Jornadas e Tarefas para o ADM da empresa e Todas as empresas para o super ADM. Cada aba carrega na primeira vez que aparece. |
 | `funcoes.js` | Chamada às funções de servidor (`/api/usuarios`, `/api/empresas`) com o JWT da sessão. |
-| `config-tarefas.js` | Aba Tarefas da Empresa (ADM): status em uso, bloco de commits e cadastro de clientes. |
+| `config-tarefas.js` | Aba Tarefas das Configurações (ADM): status em uso, bloco de commits e cadastro de clientes. |
 | `plataforma.js` | Aba Todas as empresas (super ADM). Chama `/api/empresas`. |
-| `equipe.js` | Aba Ponto da equipe (ADM): banco de horas e histórico de cada membro, só leitura, calculados com `shared/banco.js` e a jornada da pessoa. |
-| `usuarios.js` | Aba Usuários da Empresa. Chama `/api/usuarios`. |
-| `jornadas.js` | Aba Jornadas da Empresa: modelos, vigências e atribuições. Depois de cada mudança, recalcula o banco do próprio ADM. |
+| `equipe.js` | Aba Equipe da tela Ponto (ADM): liga as abas Meu ponto / Equipe e mostra o banco de horas e o histórico de cada membro, só leitura, calculados com `shared/banco.js` e a jornada da pessoa. |
+| `usuarios.js` | Aba Usuários das Configurações. Chama `/api/usuarios`. |
+| `jornadas.js` | Aba Jornadas das Configurações: modelos, vigências e atribuições. Depois de cada mudança, recalcula o banco do próprio ADM. |
 | `login.js`, `definir-senha.js`, `acesso.js` | Telas de acesso e mensagens de erro do Auth em português. |
 | `titulo.js` | Título da aba. O pomodoro tem prioridade enquanto roda; fora isso, aparece a saída prevista. |
 | `aviso.js` | Faixa vermelha de erro no topo (Supabase fora do ar, gravação recusada). |
@@ -75,7 +75,7 @@ navegador (public/, módulos ES)
 | Módulo | Conteúdo |
 |---|---|
 | `regras.js` | Trabalhado, almoço mínimo, saldo do dia (`avaliar`), tolerância, dia em andamento e validação das marcações. |
-| `banco.js` | Histórico do banco de horas a partir de registros e versões de jornada passados por parâmetro: dias do mês, meses do histórico, totais e `resumoDoBanco`. Usado pela tela Banco (dados do usuário logado) e pelo Ponto da equipe. |
+| `banco.js` | Histórico do banco de horas a partir de registros e versões de jornada passados por parâmetro: dias do mês, meses do histórico, totais e `resumoDoBanco`. Usado pelo Meu ponto (dados do usuário logado) e pela aba Equipe da tela Ponto. |
 | `jornada.js` | Vigências, jornada padrão, carga do dia, dia útil, validação de uma versão e `versoesEfetivas` (atribuições + versões dos modelos → versões do usuário). |
 | `tempo.js` | Datas `AAAA-MM-DD` no fuso local e conversões entre minutos e `HH:MM`. |
 | `registro.js` | Validação e normalização de um registro de dia. |

@@ -18,7 +18,10 @@ const ICONE = {
 const CABECA_DA_LISTA = '<div class="imp-linha cabeca-tabela"><span>Dia</span><span>Batidas</span>'
   + '<span class="num">Trabalhado</span><span class="num">Saldo</span><span></span></div>';
 
-const el = elementos(['impTexto', 'impSobrescrever', 'impLimpar', 'impResumo', 'impLista', 'impGravar']);
+const el = elementos([
+  'impTexto', 'impSobrescrever', 'impLimpar', 'impResumo', 'impLista', 'impGravar',
+  'btnImportar', 'importarDialogo', 'importarFechar',
+]);
 
 let lidos = [];
 let timerDeLeitura = null;
@@ -149,10 +152,36 @@ async function gravar() {
   }
 }
 
+/* Pop-up aberto pelo botão da tela Ponto. Fechar não apaga o que foi colado: dá para voltar e gravar. */
+function ligarPopup() {
+  el.btnImportar.addEventListener('click', () => {
+    el.importarDialogo.showModal();
+    el.impTexto.focus();
+  });
+  el.importarFechar.addEventListener('click', () => el.importarDialogo.close());
+  // fecha só se o clique começou e terminou no fundo: selecionar texto e soltar fora não conta
+  let comecouNoFundo = false;
+  const noFundo = (evento) => {
+    const caixa = el.importarDialogo.getBoundingClientRect();
+    return evento.target === el.importarDialogo && (evento.clientX < caixa.left || evento.clientX > caixa.right
+      || evento.clientY < caixa.top || evento.clientY > caixa.bottom);
+  };
+  el.importarDialogo.addEventListener('pointerdown', (evento) => {
+    comecouNoFundo = noFundo(evento);
+  });
+  el.importarDialogo.addEventListener('click', (evento) => {
+    if (comecouNoFundo && noFundo(evento)) {
+      el.importarDialogo.close();
+    }
+    comecouNoFundo = false;
+  });
+}
+
 /**
- * @description Liga a tela de importação do espelho do TiqueTaque; lê o texto sozinho enquanto ele é colado
+ * @description Liga o pop-up de importação do espelho do TiqueTaque; lê o texto sozinho enquanto ele é colado
  */
 export function iniciarImportacao() {
+  ligarPopup();
   el.impTexto.addEventListener('input', () => {
     clearTimeout(timerDeLeitura);
     timerDeLeitura = setTimeout(lerTexto, ESPERA_DIGITACAO_MS);

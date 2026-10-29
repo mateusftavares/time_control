@@ -10,6 +10,7 @@ import { iniciarImportacao } from './importacao.js';
 import { iniciarPomodoro, gravarPomodoroAoSair } from './pomodoro.js';
 import { iniciarTarefas } from './tarefas.js';
 import { iniciarEmpresa } from './empresa.js';
+import { iniciarEquipe } from './equipe.js';
 import { iniciarPerfil, carregarJornadas } from './perfil.js';
 import { mostrarAviso, avisoDeFalha } from './aviso.js';
 import { aparenciaDoPerfil, aplicarAparencia } from './aparencia.js';
@@ -78,9 +79,12 @@ async function iniciar() {
   aplicarAparencia(aparenciaDoPerfil(perfil));
   document.body.removeAttribute('data-autenticando');
   if (perfil?.papel === 'admin' || perfil?.super_admin) {
-    liberarTela('empresa');
+    liberarTela('configuracoes');
     el.menuEmpresa.hidden = false;
     iniciarEmpresa(perfil);
+  }
+  if (perfil?.papel === 'admin') {
+    iniciarEquipe();
   }
   iniciarNavegacao();
 

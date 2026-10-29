@@ -155,8 +155,12 @@
                 <span><i class="amostra amostra-agora"></i>agora</span>
               </div>
             </div>
+            <button class="botao-texto destaque-detalhes" id="hojeDetalhesBotao" type="button" aria-expanded="false" aria-controls="hojeDetalhes">
+              <span>Ver marcações e números</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
+            </button>
           </div>
 
+          <div class="hoje-detalhes" id="hojeDetalhes" hidden>
           <div class="cartao">
             <div class="cartao-cabeca">
               <h2>Marcações</h2>
@@ -211,6 +215,7 @@
           </div>
 
           <p class="formula mono" id="formula"></p>
+          </div>
 
           <section class="cartao" aria-labelledby="hojeTarefasTitulo">
             <div class="cartao-cabeca">
@@ -268,108 +273,158 @@
     </section>
 
     <!-- ==================== BANCO DE HORAS ==================== -->
-    <section class="tela" data-view="banco" aria-labelledby="bancoTitulo" hidden>
+    <section class="tela" data-view="ponto" aria-labelledby="bancoTitulo" hidden>
       <header class="cabecalho">
         <div class="cabecalho-texto">
-          <h1 id="bancoTitulo">Banco de horas</h1>
+          <h1 id="bancoTitulo">Ponto</h1>
           <p id="bancoSub">Carregando…</p>
         </div>
         <div class="cabecalho-acoes">
+          <div class="segmentado" id="pontoAbas" role="group" aria-label="De quem é o ponto" hidden>
+            <button type="button" data-aba="meu" aria-pressed="true">Meu ponto</button>
+            <button type="button" data-aba="equipe" aria-pressed="false">Equipe</button>
+          </div>
           <div class="segmentado" id="filtros" role="group" aria-label="Filtrar dias">
             <button type="button" data-filtro="todos" aria-pressed="true">Todos</button>
             <button type="button" data-filtro="pendentes" aria-pressed="false">Sem marcação</button>
             <button type="button" data-filtro="abonados" aria-pressed="false">Abonados</button>
           </div>
-          <a class="botao botao-secundario" href="#importar">
+          <button class="botao botao-secundario" id="btnImportar" type="button" aria-haspopup="dialog">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12"></path><path d="M7 10l5 5 5-5"></path><path d="M4 20h16"></path></svg>
             Importar do TiqueTaque
-          </a>
+          </button>
         </div>
       </header>
 
-      <div class="kpis">
-        <div class="cartao numero">
-          <span class="numero-rotulo">Banco acumulado</span>
-          <span class="numero-valor grande mono" id="saldoMes">--:--</span>
-          <span class="numero-legenda" id="saldoCap"></span>
+      <div class="ponto-secao" id="pontoMeu">
+        <div class="kpis">
+          <div class="cartao numero">
+            <span class="numero-rotulo">Banco acumulado</span>
+            <span class="numero-valor grande mono" id="saldoMes">--:--</span>
+            <span class="numero-legenda" id="saldoCap"></span>
+          </div>
+          <div class="cartao numero">
+            <span class="numero-rotulo" id="trabalhadoRotulo">Trabalhado no mês</span>
+            <span class="numero-valor grande mono" id="totalTrabalhado">--:--</span>
+            <span class="numero-legenda" id="capDias"></span>
+          </div>
+          <div class="cartao numero">
+            <span class="numero-rotulo">Dias sem marcação</span>
+            <span class="numero-valor grande mono" id="totalPendentes">0</span>
+            <span class="numero-legenda" id="capPendentes"></span>
+          </div>
+          <div class="cartao numero grafico-cartao">
+            <span class="numero-rotulo">Saldo por mês</span>
+            <div class="grafico" id="grafico" role="img"></div>
+            <div class="grafico-meses" id="graficoMeses"></div>
+          </div>
         </div>
-        <div class="cartao numero">
-          <span class="numero-rotulo" id="trabalhadoRotulo">Trabalhado no mês</span>
-          <span class="numero-valor grande mono" id="totalTrabalhado">--:--</span>
-          <span class="numero-legenda" id="capDias"></span>
-        </div>
-        <div class="cartao numero">
-          <span class="numero-rotulo">Dias sem marcação</span>
-          <span class="numero-valor grande mono" id="totalPendentes">0</span>
-          <span class="numero-legenda" id="capPendentes"></span>
-        </div>
-        <div class="cartao numero grafico-cartao">
-          <span class="numero-rotulo">Saldo por mês</span>
-          <div class="grafico" id="grafico" role="img"></div>
-          <div class="grafico-meses" id="graficoMeses"></div>
+
+        <div class="colunas">
+          <section class="cartao historico" aria-label="Histórico por mês">
+            <div class="historico-rolagem">
+              <div class="historico-tabela">
+                <div class="linha-tabela cabeca-tabela">
+                  <span>Dia</span><span>Situação</span><span class="num">Chegada</span><span class="num">Almoço</span>
+                  <span class="num">Volta</span><span class="num">Saída</span><span class="num">Trabalhado</span><span class="num">Saldo</span>
+                </div>
+                <div id="mesCorpo"></div>
+              </div>
+            </div>
+            <p class="texto-mudo" id="mesEstado">Carregando…</p>
+          </section>
+
+          <aside class="cartao editor" id="editor" aria-label="Corrigir dia" hidden>
+            <div class="editor-topo">
+              <div>
+                <span class="texto-mudo pequeno">Corrigir dia</span>
+                <h2 id="diaTitulo">Dia</h2>
+              </div>
+              <button class="botao-icone" id="diaFechar" type="button" aria-label="Fechar">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12"></path><path d="M18 6L6 18"></path></svg>
+              </button>
+            </div>
+
+            <div class="tipos" id="tipoGrid" role="group" aria-label="O que foi este dia">
+              <button class="tipo" type="button" data-tipo="normal" aria-pressed="true">Dia trabalhado<small>conta pelas marcações</small></button>
+              <button class="tipo" type="button" data-tipo="feriado" aria-pressed="false">Feriado<small>saldo zero</small></button>
+              <button class="tipo" type="button" data-tipo="folga" aria-pressed="false">Folga<small>saldo zero</small></button>
+              <button class="tipo" type="button" data-tipo="compensacao" aria-pressed="false">Compensação<small>consome a jornada</small></button>
+            </div>
+
+            <div class="editor-campos" id="diaMarcacoes">
+              <label>Chegada<input type="time" id="dChegada"></label>
+              <label>Saída p/ almoço<input type="time" id="dAlmocoIni"></label>
+              <label>Volta do almoço<input type="time" id="dAlmocoFim"></label>
+              <label>Saída<input type="time" id="dSaida"></label>
+            </div>
+
+            <div class="editor-previa">
+              <span class="texto-secundario">Trabalhado</span><b class="mono" id="previaTrabalhado">—</b>
+              <span class="texto-secundario editor-previa-saldo">saldo</span><b class="mono" id="previaSaldo">—</b>
+            </div>
+            <span class="texto-mudo pequeno" id="previaNota"></span>
+
+            <div class="editor-acoes">
+              <button class="botao botao-primario" id="diaSalvar" type="button">Salvar dia</button>
+              <button class="botao botao-perigo" id="diaApagar" type="button">Apagar</button>
+            </div>
+          </aside>
         </div>
       </div>
 
-      <div class="colunas">
-        <section class="cartao historico" aria-label="Histórico por mês">
+      <div class="ponto-secao" id="pontoEquipe" hidden>
+        <div class="cartao equipe-escolha">
+          <label class="equipe-membro">Pessoa<select id="equipeMembro"></select></label>
+          <span class="texto-secundario pequeno" id="equipeJornada"></span>
+          <span class="texto-mudo pequeno estado" id="equipeEstado" role="status"></span>
+        </div>
+        <div class="numeros">
+          <div class="cartao numero">
+            <span class="numero-rotulo">Banco acumulado</span>
+            <span class="numero-valor grande mono" id="equipeBanco">--:--</span>
+            <span class="numero-legenda" id="equipeBancoCap"></span>
+          </div>
+          <div class="cartao numero">
+            <span class="numero-rotulo">Saldo do mês</span>
+            <span class="numero-valor grande mono" id="equipeMes">--:--</span>
+            <span class="numero-legenda" id="equipeMesCap"></span>
+          </div>
+          <div class="cartao numero">
+            <span class="numero-rotulo">Trabalhado no mês</span>
+            <span class="numero-valor grande mono" id="equipeTrabalhado">--:--</span>
+          </div>
+          <div class="cartao numero">
+            <span class="numero-rotulo">Sem marcação</span>
+            <span class="numero-valor grande mono" id="equipePendentes">—</span>
+            <span class="numero-legenda">dias úteis sem registro</span>
+          </div>
+        </div>
+        <section class="cartao historico" aria-label="Histórico da pessoa">
           <div class="historico-rolagem">
             <div class="historico-tabela">
               <div class="linha-tabela cabeca-tabela">
                 <span>Dia</span><span>Situação</span><span class="num">Chegada</span><span class="num">Almoço</span>
                 <span class="num">Volta</span><span class="num">Saída</span><span class="num">Trabalhado</span><span class="num">Saldo</span>
               </div>
-              <div id="mesCorpo"></div>
+              <div id="equipeCorpo"></div>
             </div>
           </div>
-          <p class="texto-mudo" id="mesEstado">Carregando…</p>
         </section>
-
-        <aside class="cartao editor" id="editor" aria-label="Corrigir dia" hidden>
-          <div class="editor-topo">
-            <div>
-              <span class="texto-mudo pequeno">Corrigir dia</span>
-              <h2 id="diaTitulo">Dia</h2>
-            </div>
-            <button class="botao-icone" id="diaFechar" type="button" aria-label="Fechar">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12"></path><path d="M18 6L6 18"></path></svg>
-            </button>
-          </div>
-
-          <div class="tipos" id="tipoGrid" role="group" aria-label="O que foi este dia">
-            <button class="tipo" type="button" data-tipo="normal" aria-pressed="true">Dia trabalhado<small>conta pelas marcações</small></button>
-            <button class="tipo" type="button" data-tipo="feriado" aria-pressed="false">Feriado<small>saldo zero</small></button>
-            <button class="tipo" type="button" data-tipo="folga" aria-pressed="false">Folga<small>saldo zero</small></button>
-            <button class="tipo" type="button" data-tipo="compensacao" aria-pressed="false">Compensação<small>consome a jornada</small></button>
-          </div>
-
-          <div class="editor-campos" id="diaMarcacoes">
-            <label>Chegada<input type="time" id="dChegada"></label>
-            <label>Saída p/ almoço<input type="time" id="dAlmocoIni"></label>
-            <label>Volta do almoço<input type="time" id="dAlmocoFim"></label>
-            <label>Saída<input type="time" id="dSaida"></label>
-          </div>
-
-          <div class="editor-previa">
-            <span class="texto-secundario">Trabalhado</span><b class="mono" id="previaTrabalhado">—</b>
-            <span class="texto-secundario editor-previa-saldo">saldo</span><b class="mono" id="previaSaldo">—</b>
-          </div>
-          <span class="texto-mudo pequeno" id="previaNota"></span>
-
-          <div class="editor-acoes">
-            <button class="botao botao-primario" id="diaSalvar" type="button">Salvar dia</button>
-            <button class="botao botao-perigo" id="diaApagar" type="button">Apagar</button>
-          </div>
-        </aside>
+        <p class="texto-mudo pequeno">Só leitura: cada pessoa corrige o próprio ponto. O cálculo é o mesmo do seu ponto, com a jornada da pessoa.</p>
       </div>
     </section>
 
     <!-- ==================== IMPORTAR ==================== -->
-    <section class="tela" data-view="importar" aria-labelledby="importarTitulo" hidden>
+    <dialog class="importar-modal" id="importarDialogo" aria-labelledby="importarTitulo">
       <header class="cabecalho">
         <div class="cabecalho-texto">
-          <h1 id="importarTitulo">Importar do TiqueTaque</h1>
+          <h2 id="importarTitulo">Importar do TiqueTaque</h2>
           <p>Abra o espelho do mês, selecione a tabela com o mouse, copie e cole. Cada dia é conferido contra o saldo oficial antes de gravar.</p>
         </div>
+        <button class="botao-icone" id="importarFechar" type="button" aria-label="Fechar">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12"></path><path d="M18 6L6 18"></path></svg>
+        </button>
       </header>
 
       <div class="colunas">
@@ -400,20 +455,19 @@
           </div>
         </section>
       </div>
-    </section>
+    </dialog>
 
-    <!-- ==================== EMPRESA (ADM): usuários e jornadas ==================== -->
-    <section class="tela" data-view="empresa" aria-labelledby="empresaTitulo" hidden>
+    <!-- ==================== CONFIGURAÇÕES (ADM e super ADM) ==================== -->
+    <section class="tela" data-view="configuracoes" aria-labelledby="empresaTitulo" hidden>
       <header class="cabecalho">
         <div class="cabecalho-texto">
-          <h1 id="empresaTitulo">Empresa</h1>
+          <h1 id="empresaTitulo">Configurações</h1>
           <p><b id="usuariosEmpresa"></b> · <span id="empresaPapel"></span></p>
         </div>
         <div class="cabecalho-acoes">
           <div class="segmentado" id="empresaAbas" role="group" aria-label="Seção da empresa">
             <button type="button" data-aba="usuarios" aria-pressed="true">Usuários</button>
             <button type="button" data-aba="jornadas" aria-pressed="false">Jornadas</button>
-            <button type="button" data-aba="equipe" aria-pressed="false">Ponto da equipe</button>
             <button type="button" data-aba="tarefas" aria-pressed="false">Tarefas</button>
             <button type="button" data-aba="plataforma" aria-pressed="false" hidden>Todas as empresas</button>
           </div>
@@ -527,46 +581,6 @@
         </section>
       </div>
 
-      <div class="empresa-secao" id="empresaEquipe" hidden>
-        <div class="cartao equipe-escolha">
-          <label class="equipe-membro">Pessoa<select id="equipeMembro"></select></label>
-          <span class="texto-secundario pequeno" id="equipeJornada"></span>
-          <span class="texto-mudo pequeno estado" id="equipeEstado" role="status"></span>
-        </div>
-        <div class="numeros">
-          <div class="cartao numero">
-            <span class="numero-rotulo">Banco acumulado</span>
-            <span class="numero-valor grande mono" id="equipeBanco">--:--</span>
-            <span class="numero-legenda" id="equipeBancoCap"></span>
-          </div>
-          <div class="cartao numero">
-            <span class="numero-rotulo">Saldo do mês</span>
-            <span class="numero-valor grande mono" id="equipeMes">--:--</span>
-            <span class="numero-legenda" id="equipeMesCap"></span>
-          </div>
-          <div class="cartao numero">
-            <span class="numero-rotulo">Trabalhado no mês</span>
-            <span class="numero-valor grande mono" id="equipeTrabalhado">--:--</span>
-          </div>
-          <div class="cartao numero">
-            <span class="numero-rotulo">Sem marcação</span>
-            <span class="numero-valor grande mono" id="equipePendentes">—</span>
-            <span class="numero-legenda">dias úteis sem registro</span>
-          </div>
-        </div>
-        <section class="cartao historico" aria-label="Histórico da pessoa">
-          <div class="historico-rolagem">
-            <div class="historico-tabela">
-              <div class="linha-tabela cabeca-tabela">
-                <span>Dia</span><span>Situação</span><span class="num">Chegada</span><span class="num">Almoço</span>
-                <span class="num">Volta</span><span class="num">Saída</span><span class="num">Trabalhado</span><span class="num">Saldo</span>
-              </div>
-              <div id="equipeCorpo"></div>
-            </div>
-          </div>
-        </section>
-        <p class="texto-mudo pequeno">Só leitura: cada pessoa corrige o próprio ponto. O cálculo é o mesmo da tela Banco, com a jornada da pessoa.</p>
-      </div>
 
       <div class="empresa-secao" id="empresaTarefas" hidden>
         <div class="colunas">
@@ -638,8 +652,7 @@
         </div>
       </header>
 
-      <div class="colunas">
-        <div class="coluna-lateral perfil-coluna">
+      <div class="perfil-cartoes">
           <section class="cartao" aria-label="Nome e foto">
             <div class="perfil-foto">
               <span class="avatar avatar-grande" id="perfilAvatar" aria-hidden="true"></span>
@@ -687,7 +700,6 @@
             </form>
             <span class="texto-mudo pequeno estado" id="senhaEstado" role="status"></span>
           </section>
-        </div>
 
         <section class="cartao jornada" aria-labelledby="minhaJornadaTitulo">
           <div class="cartao-cabeca">
@@ -760,21 +772,17 @@
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>
       <span>Hoje</span>
     </a>
-    <a class="capsula-item" href="#banco" data-view="banco">
+    <a class="capsula-item" href="#ponto" data-view="ponto">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10"></path><path d="M10 20V4"></path><path d="M16 20v-7"></path><path d="M22 20H2"></path></svg>
-      <span>Banco</span>
+      <span>Ponto</span>
     </a>
     <a class="capsula-item" href="#tarefas" data-view="tarefas">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h11"></path><path d="M9 12h11"></path><path d="M9 18h11"></path><path d="M3.5 6l1.5 1.5L7.5 5"></path><path d="M3.5 12l1.5 1.5L7.5 11"></path><path d="M3.5 18l1.5 1.5L7.5 17"></path></svg>
       <span>Tarefas</span>
     </a>
-    <a class="capsula-item" href="#importar" data-view="importar">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12"></path><path d="M7 10l5 5 5-5"></path><path d="M4 20h16"></path></svg>
-      <span>Importar</span>
-    </a>
-    <a class="capsula-item" href="#empresa" data-view="empresa" id="menuEmpresa" hidden>
-      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"></circle><path d="M2.5 20c.6-3.6 3.2-5.5 6.5-5.5s5.9 1.9 6.5 5.5"></path><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8"></path><path d="M18.5 14.8c1.7.7 2.7 2.4 3 5.2"></path></svg>
-      <span>Empresa</span>
+    <a class="capsula-item" href="#configuracoes" data-view="configuracoes" id="menuEmpresa" hidden>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path></svg>
+      <span>Configurações</span>
     </a>
     <a class="capsula-item" href="#perfil" data-view="perfil">
       <span class="avatar" id="navAvatar" aria-hidden="true"></span>
