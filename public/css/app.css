@@ -769,7 +769,6 @@ body[data-autenticando] .shell { visibility: hidden; }
   color: var(--texto-mudo); text-decoration: line-through;
 }
 
-
 .tarefa-abrir {
   display: flex; flex-direction: column; gap: 4px; min-width: 0; text-align: left;
   border: 0; background: none; padding: 2px 0; cursor: pointer;

@@ -37,6 +37,7 @@ let filtro = 'abertas';
 let cliente = '';
 let busca = '';
 let editada = null;
+let instantaneoDoEditor = '';
 
 function lerVisao() {
   try {
@@ -238,8 +239,12 @@ function sincronizarEditor() {
     return;
   }
   if (atual.status !== editada.status) {
+    const estavaSujo = editorSujo();
     editada.status = atual.status;
     el.tStatus.value = atual.status;
+    if (!estavaSujo) {
+      instantaneoDoEditor = JSON.stringify(dadosDoEditor());
+    }
   }
   pintarFocoDoEditor();
 }
@@ -298,6 +303,18 @@ function preencherEditor() {
   pintarChecklist();
   pintarCommits();
   pintarFocoDoEditor();
+  instantaneoDoEditor = JSON.stringify(dadosDoEditor());
+}
+
+function editorSujo() {
+  return Boolean(editada) && JSON.stringify(dadosDoEditor()) !== instantaneoDoEditor;
+}
+
+/* X, Esc e clique fora: com alteração não salva, pergunta antes de descartar. */
+function pedirParaFechar() {
+  if (!editorSujo() || confirm('Descartar as alterações não salvas desta tarefa?')) {
+    fecharEditor();
+  }
 }
 
 function abrirEditor(tarefa) {
@@ -334,6 +351,9 @@ async function salvarEditor(evento) {
   el.tarefaSalvar.disabled = true;
   try {
     const gravada = await store.salvar(dadosDoEditor());
+    if (!el.tarefaEditor.open) {
+      return;
+    }
     editada = structuredClone(gravada);
     preencherEditor();
     mostrarEstado('Tarefa salva.', 'ok');
@@ -577,18 +597,33 @@ function ligarFiltros() {
 
 function ligarEditor() {
   el.tarefaForm.addEventListener('submit', salvarEditor);
-  el.tarefaFechar.addEventListener('click', fecharEditor);
+  el.tarefaFechar.addEventListener('click', pedirParaFechar);
+  // Esc tratado no teclado: depois de um cancel recusado, o Chrome fecha o dialog no Esc seguinte sem perguntar
+  el.tarefaEditor.addEventListener('keydown', (evento) => {
+    if (evento.key === 'Escape') {
+      evento.preventDefault();
+      pedirParaFechar();
+    }
+  });
+  el.tarefaEditor.addEventListener('cancel', (evento) => evento.preventDefault());
   el.tarefaEditor.addEventListener('close', () => {
     editada = null;
   });
-  // no fundo escurecido o alvo também é o dialog, como na borda interna dele: decide pela posição do clique
-  el.tarefaEditor.addEventListener('click', (evento) => {
+  // fecha só se o clique começou e terminou no fundo: selecionar texto e soltar fora não conta
+  let comecouNoFundo = false;
+  const noFundo = (evento) => {
     const caixa = el.tarefaEditor.getBoundingClientRect();
-    const dentro = evento.clientX >= caixa.left && evento.clientX <= caixa.right
-      && evento.clientY >= caixa.top && evento.clientY <= caixa.bottom;
-    if (evento.target === el.tarefaEditor && !dentro) {
-      fecharEditor();
+    return evento.target === el.tarefaEditor && (evento.clientX < caixa.left || evento.clientX > caixa.right
+      || evento.clientY < caixa.top || evento.clientY > caixa.bottom);
+  };
+  el.tarefaEditor.addEventListener('pointerdown', (evento) => {
+    comecouNoFundo = noFundo(evento);
+  });
+  el.tarefaEditor.addEventListener('click', (evento) => {
+    if (comecouNoFundo && noFundo(evento)) {
+      pedirParaFechar();
     }
+    comecouNoFundo = false;
   });
   el.tarefaApagar.addEventListener('click', apagarEditada);
   el.tNovoItem.addEventListener('keydown', adicionarItem);
