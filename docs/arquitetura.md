@@ -61,6 +61,7 @@ navegador (public/, módulos ES)
 | `empresa.js` | Tela Empresa: abas Usuários e Jornadas para o ADM da empresa e Todas as empresas para o super ADM. Cada aba carrega na primeira vez que aparece. |
 | `funcoes.js` | Chamada às funções de servidor (`/api/usuarios`, `/api/empresas`) com o JWT da sessão. |
 | `plataforma.js` | Aba Todas as empresas (super ADM). Chama `/api/empresas`. |
+| `equipe.js` | Aba Ponto da equipe (ADM): banco de horas e histórico de cada membro, só leitura, calculados com `shared/banco.js` e a jornada da pessoa. |
 | `usuarios.js` | Aba Usuários da Empresa. Chama `/api/usuarios`. |
 | `jornadas.js` | Aba Jornadas da Empresa: modelos, vigências e atribuições. Depois de cada mudança, recalcula o banco do próprio ADM. |
 | `login.js`, `definir-senha.js`, `acesso.js` | Telas de acesso e mensagens de erro do Auth em português. |
@@ -73,6 +74,7 @@ navegador (public/, módulos ES)
 | Módulo | Conteúdo |
 |---|---|
 | `regras.js` | Trabalhado, almoço mínimo, saldo do dia (`avaliar`), tolerância, dia em andamento e validação das marcações. |
+| `banco.js` | Histórico do banco de horas a partir de registros e versões de jornada passados por parâmetro: dias do mês, meses do histórico, totais e `resumoDoBanco`. Usado pela tela Banco (dados do usuário logado) e pelo Ponto da equipe. |
 | `jornada.js` | Vigências, jornada padrão, carga do dia, dia útil, validação de uma versão e `versoesEfetivas` (atribuições + versões dos modelos → versões do usuário). |
 | `tempo.js` | Datas `AAAA-MM-DD` no fuso local e conversões entre minutos e `HH:MM`. |
 | `registro.js` | Validação e normalização de um registro de dia. |
@@ -121,6 +123,7 @@ As duas usam a service role e dividem as peças de `src/servidor.js`: `atender` 
 
 ## Segurança, em resumo
 
+- **Toda leitura de `dias` no front filtra pelo usuário** (`listarDias(userId)`): o ADM lê o ponto da equipe pela RLS, e sem o filtro o histórico dele viria misturado.
 - RLS em todas as tabelas. `dias`, `pomodoro` e `tarefas` só aceitam `user_id = auth.uid()` com o perfil **ativo numa empresa ativa**: desativar o usuário ou a empresa corta o acesso na hora, mesmo com um token ainda válido.
 - Jornadas da empresa (`modelos_jornada`, `versoes_jornada`, `atribuicoes_jornada`): todos da empresa leem os modelos e as versões; cada um lê as próprias atribuições e o ADM as da empresa; só o ADM grava. O trigger `conferir_atribuicao_jornada` recusa atribuir um modelo de outra empresa por qualquer caminho.
 - O cliente só pode alterar em `perfis` as colunas `nome`, `avatar_path`, `cor_destaque`, `superficie` e `fundo`, e só do próprio perfil (privilégio por coluna mais policy). Papel, ativo, empresa e super ADM ficam fora do alcance do cliente; `empresas` é só leitura para ele.

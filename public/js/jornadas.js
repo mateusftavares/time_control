@@ -160,8 +160,27 @@ function pintarModelos() {
   }
   el.jornadaModelos.replaceChildren(...dados.modelos.map((modelo) => {
     const pessoas = dados.membros.filter((membro) => atribuicaoVigente(membro.id)?.modeloId === modelo.id).length;
-    const resumo = `${resumoDaJornada(jornadaDe(hoje(), versoesDo(modelo.id)))} · ${pessoas} pessoa(s) hoje`;
-    return botaoComResumo(modelo.nome, resumo, modelo.id === modeloId, () => selecionarModelo(modelo.id));
+    const aberta = modelo.id === modeloId;
+    const linha = document.createElement('div');
+    linha.className = 'modelo-linha';
+    linha.setAttribute('aria-current', String(aberta));
+    const nome = document.createElement('b');
+    nome.textContent = modelo.nome;
+    const resumo = document.createElement('span');
+    resumo.className = 'texto-secundario';
+    resumo.textContent = resumoDaJornada(jornadaDe(hoje(), versoesDo(modelo.id)));
+    const quantas = document.createElement('span');
+    quantas.className = 'num mono';
+    quantas.textContent = String(pessoas);
+    const editar = document.createElement('button');
+    editar.type = 'button';
+    editar.className = `botao botao-pequeno ${aberta ? 'botao-fantasma' : 'botao-secundario'}`;
+    editar.textContent = aberta ? 'Fechar' : 'Editar';
+    editar.setAttribute('aria-expanded', String(aberta));
+    editar.setAttribute('aria-controls', 'jornadaEditor');
+    editar.addEventListener('click', () => selecionarModelo(aberta ? null : modelo.id));
+    linha.append(nome, resumo, quantas, editar);
+    return linha;
   }));
 }
 
@@ -198,12 +217,16 @@ function novaVigencia() {
   pintarVersoes();
 }
 
-function selecionarModelo(id, vigencia = null) {
+/* Abre o editor da jornada abaixo da lista (id null fecha); rolar só quando quem abriu foi o clique. */
+function selecionarModelo(id, vigencia = null, rolar = true) {
   modeloId = id;
   el.jornadaEditor.hidden = !id;
   pintarModelos();
   if (!id) {
     return;
+  }
+  if (rolar) {
+    el.jornadaEditor.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
   el.jornadaTitulo.textContent = nomeDoModelo(id);
   el.modeloNome.value = nomeDoModelo(id);
@@ -220,9 +243,9 @@ function selecionarModelo(id, vigencia = null) {
 async function recarregar(vigencia = null) {
   dados = await api.jornadasDaEmpresa();
   if (!dados.modelos.some((modelo) => modelo.id === modeloId)) {
-    modeloId = dados.modelos[0]?.id ?? null;
+    modeloId = null;
   }
-  selecionarModelo(modeloId, vigencia);
+  selecionarModelo(modeloId, vigencia, false);
   pintarPessoas();
   await recarregarMinhaJornada();
 }

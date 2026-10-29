@@ -412,6 +412,7 @@
           <div class="segmentado" id="empresaAbas" role="group" aria-label="Seção da empresa">
             <button type="button" data-aba="usuarios" aria-pressed="true">Usuários</button>
             <button type="button" data-aba="jornadas" aria-pressed="false">Jornadas</button>
+            <button type="button" data-aba="equipe" aria-pressed="false">Ponto da equipe</button>
             <button type="button" data-aba="plataforma" aria-pressed="false" hidden>Todas as empresas</button>
           </div>
         </div>
@@ -451,62 +452,67 @@
       </div>
 
       <div class="empresa-secao" id="empresaJornadas" hidden>
-        <div class="colunas">
-          <section class="cartao modelos-jornada" aria-labelledby="modelosTitulo">
-            <div class="cartao-cabeca">
-              <h2 id="modelosTitulo">Jornadas da empresa</h2>
-            </div>
-            <div class="vigencias modelos" id="jornadaModelos" role="group" aria-label="Jornadas da empresa"></div>
+        <section class="cartao modelos-jornada" aria-labelledby="modelosTitulo">
+          <div class="cartao-cabeca">
+            <h2 id="modelosTitulo">Jornadas da empresa</h2>
             <form class="modelo-form" id="formModeloNovo" novalidate>
               <label class="so-leitor" for="modeloNovoNome">Nome da nova jornada</label>
               <input id="modeloNovoNome" maxlength="80" autocomplete="off" placeholder="Nova jornada, ex.: Comercial 8h">
               <button class="botao botao-secundario botao-pequeno" type="submit">Criar</button>
             </form>
-            <span class="texto-mudo pequeno estado" id="modelosEstado" role="status"></span>
-          </section>
-
-          <section class="cartao jornada" aria-labelledby="jornadaTitulo" id="jornadaEditor" hidden>
-            <div class="cartao-cabeca">
-              <h2 id="jornadaTitulo">Jornada</h2>
-              <button class="botao botao-secundario botao-pequeno" id="jornadaNova" type="button">Nova vigência</button>
+          </div>
+          <div class="historico-rolagem">
+            <div class="lista-modelos">
+              <div class="modelo-linha cabeca-tabela">
+                <span>Jornada</span><span>Vigente hoje</span><span class="num">Pessoas hoje</span><span></span>
+              </div>
+              <div id="jornadaModelos"></div>
             </div>
-            <form class="modelo-form" id="formModeloNome" novalidate>
-              <label class="so-leitor" for="modeloNome">Nome da jornada</label>
-              <input id="modeloNome" maxlength="80" autocomplete="off">
-              <button class="botao botao-fantasma botao-pequeno" type="submit">Renomear</button>
-              <button class="botao botao-perigo botao-pequeno" id="modeloApagar" type="button">Apagar jornada</button>
-            </form>
-            <p class="texto-mudo pequeno">Carga de cada dia, tolerância e regra do banco. Cada dia é calculado com a versão vigente na data dele: para mudar daqui para a frente, crie uma nova vigência. Editar uma vigência antiga recalcula os dias dela de todos que usam esta jornada.</p>
-            <div class="vigencias" id="jornadaVersoes" role="group" aria-label="Vigências"></div>
+          </div>
+          <span class="texto-mudo pequeno estado" id="modelosEstado" role="status"></span>
+        </section>
 
-            <form class="jornada-form" id="formJornada" novalidate>
-              <label class="jornada-vigencia">Válida a partir de<input type="date" id="jornadaDesde" required></label>
+        <section class="cartao jornada" aria-labelledby="jornadaTitulo" id="jornadaEditor" hidden>
+          <div class="cartao-cabeca">
+            <h2 id="jornadaTitulo">Jornada</h2>
+            <button class="botao botao-secundario botao-pequeno" id="jornadaNova" type="button">Nova vigência</button>
+          </div>
+          <form class="modelo-form" id="formModeloNome" novalidate>
+            <label class="so-leitor" for="modeloNome">Nome da jornada</label>
+            <input id="modeloNome" maxlength="80" autocomplete="off">
+            <button class="botao botao-fantasma botao-pequeno" type="submit">Renomear</button>
+            <button class="botao botao-perigo botao-pequeno" id="modeloApagar" type="button">Apagar jornada</button>
+          </form>
+          <p class="texto-mudo pequeno">Carga de cada dia, tolerância e regra do banco. Cada dia é calculado com a versão vigente na data dele: para mudar daqui para a frente, crie uma nova vigência. Editar uma vigência antiga recalcula os dias dela de todos que usam esta jornada.</p>
+          <div class="vigencias" id="jornadaVersoes" role="group" aria-label="Vigências"></div>
 
-              <div class="jornada-semana">
-                <div class="jornada-linha cabeca-tabela">
-                  <span>Dia</span><span>Entrada</span><span>Saída p/ almoço</span><span>Volta</span><span>Saída</span><span class="num">Carga</span>
-                </div>
-                <div id="jornadaDias"></div>
+          <form class="jornada-form" id="formJornada" novalidate>
+            <label class="jornada-vigencia">Válida a partir de<input type="date" id="jornadaDesde" required></label>
+
+            <div class="jornada-semana">
+              <div class="jornada-linha cabeca-tabela">
+                <span>Dia</span><span>Entrada</span><span>Saída p/ almoço</span><span>Volta</span><span>Saída</span><span class="num">Carga</span>
               </div>
+              <div id="jornadaDias"></div>
+            </div>
 
-              <div class="jornada-tolerancia">
-                <label>Tolerância antes (min)<input type="number" id="tolAntes" min="0" max="120" step="1" inputmode="numeric"></label>
-                <label>Tolerância depois (min)<input type="number" id="tolDepois" min="0" max="120" step="1" inputmode="numeric"></label>
-                <div class="segmentado modo" id="modoTolerancia" role="group" aria-label="Modo da tolerância">
-                  <button type="button" data-modo="acumulativo" aria-pressed="true">Acumulativo</button>
-                  <button type="button" data-modo="individual" aria-pressed="false">Individual</button>
-                </div>
+            <div class="jornada-tolerancia">
+              <label>Tolerância antes (min)<input type="number" id="tolAntes" min="0" max="120" step="1" inputmode="numeric"></label>
+              <label>Tolerância depois (min)<input type="number" id="tolDepois" min="0" max="120" step="1" inputmode="numeric"></label>
+              <div class="segmentado modo" id="modoTolerancia" role="group" aria-label="Modo da tolerância">
+                <button type="button" data-modo="acumulativo" aria-pressed="true">Acumulativo</button>
+                <button type="button" data-modo="individual" aria-pressed="false">Individual</button>
               </div>
-              <p class="texto-mudo pequeno" id="modoExplicacao"></p>
+            </div>
+            <p class="texto-mudo pequeno" id="modoExplicacao"></p>
 
-              <div class="jornada-acoes">
-                <button class="botao botao-perigo botao-pequeno" id="jornadaApagar" type="button">Apagar vigência</button>
-                <span class="texto-mudo pequeno estado" id="jornadaEstado" role="status"></span>
-                <button class="botao botao-primario" id="jornadaSalvar" type="submit">Salvar jornada</button>
-              </div>
-            </form>
-          </section>
-        </div>
+            <div class="jornada-acoes">
+              <button class="botao botao-perigo botao-pequeno" id="jornadaApagar" type="button">Apagar vigência</button>
+              <span class="texto-mudo pequeno estado" id="jornadaEstado" role="status"></span>
+              <button class="botao botao-primario" id="jornadaSalvar" type="submit">Salvar jornada</button>
+            </div>
+          </form>
+        </section>
 
         <section class="cartao pessoas-jornada" aria-labelledby="pessoasTitulo">
           <div class="cartao-cabeca">
@@ -517,6 +523,47 @@
             <div class="pessoas-tabela" id="pessoasJornada"></div>
           </div>
         </section>
+      </div>
+
+      <div class="empresa-secao" id="empresaEquipe" hidden>
+        <div class="cartao equipe-escolha">
+          <label class="equipe-membro">Pessoa<select id="equipeMembro"></select></label>
+          <span class="texto-secundario pequeno" id="equipeJornada"></span>
+          <span class="texto-mudo pequeno estado" id="equipeEstado" role="status"></span>
+        </div>
+        <div class="numeros">
+          <div class="cartao numero">
+            <span class="numero-rotulo">Banco acumulado</span>
+            <span class="numero-valor grande mono" id="equipeBanco">--:--</span>
+            <span class="numero-legenda" id="equipeBancoCap"></span>
+          </div>
+          <div class="cartao numero">
+            <span class="numero-rotulo">Saldo do mês</span>
+            <span class="numero-valor grande mono" id="equipeMes">--:--</span>
+            <span class="numero-legenda" id="equipeMesCap"></span>
+          </div>
+          <div class="cartao numero">
+            <span class="numero-rotulo">Trabalhado no mês</span>
+            <span class="numero-valor grande mono" id="equipeTrabalhado">--:--</span>
+          </div>
+          <div class="cartao numero">
+            <span class="numero-rotulo">Sem marcação</span>
+            <span class="numero-valor grande mono" id="equipePendentes">—</span>
+            <span class="numero-legenda">dias úteis sem registro</span>
+          </div>
+        </div>
+        <section class="cartao historico" aria-label="Histórico da pessoa">
+          <div class="historico-rolagem">
+            <div class="historico-tabela">
+              <div class="linha-tabela cabeca-tabela">
+                <span>Dia</span><span>Situação</span><span class="num">Chegada</span><span class="num">Almoço</span>
+                <span class="num">Volta</span><span class="num">Saída</span><span class="num">Trabalhado</span><span class="num">Saldo</span>
+              </div>
+              <div id="equipeCorpo"></div>
+            </div>
+          </div>
+        </section>
+        <p class="texto-mudo pequeno">Só leitura: cada pessoa corrige o próprio ponto. O cálculo é o mesmo da tela Banco, com a jornada da pessoa.</p>
       </div>
 
       <div class="empresa-secao" id="empresaPlataforma" hidden>

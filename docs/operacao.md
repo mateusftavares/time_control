@@ -141,6 +141,7 @@ Os scripts usam `public/shared/` (as mesmas regras do site), `scripts/conferenci
 | `linhas.test.js` | conversão entre registro e linha do banco |
 | `tarefas.test.js` | validação da tarefa e dos commits, recorrência, ordem de trabalho, tarefas de hoje e ponte com a linha do banco |
 | `regras-usuarios.test.js` | validação dos pedidos da função de usuários e regra do ADM único |
+| `banco.test.js` | histórico do banco com registros e jornada por parâmetro (dias do mês, meses, totais) e equivalência com as versões do usuário logado |
 | `regras-empresas.test.js` | validação dos pedidos da função de empresas, recusa de desativar a própria empresa e montagem da lista |
 | `acesso.test.js` | mensagens de erro do Auth |
 

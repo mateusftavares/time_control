@@ -100,10 +100,17 @@ async function upsertComKeepalive(tabela, linha) {
   }
 }
 
-async function listarDias() {
+/**
+ * @description Dias de ponto de um usuário (o logado, por padrão). Filtra sempre pelo usuário: o ADM também
+ *   lê o ponto da equipe pela RLS, e sem o filtro tudo viria misturado
+ * @param {string} [userId]
+ * @returns {Promise<object[]>}
+ */
+async function listarDias(userId = exigirUsuario()) {
+  exigirId(userId);
   const registros = [];
   for (let inicio = 0; ; inicio += LINHAS_POR_PAGINA) {
-    const pagina = await executar(supabase.from('dias').select(COLUNAS_DIAS)
+    const pagina = await executar(supabase.from('dias').select(COLUNAS_DIAS).eq('user_id', userId)
       .order('dia').range(inicio, inicio + LINHAS_POR_PAGINA - 1));
     registros.push(...pagina.map(paraRegistro));
     if (pagina.length < LINHAS_POR_PAGINA) {
@@ -124,7 +131,7 @@ async function salvarDia(entrada, { keepalive = false } = {}) {
 
 async function apagarDia(dia) {
   exigirDia(dia);
-  const apagadas = await executar(supabase.from('dias').delete().eq('dia', dia).select('dia'));
+  const apagadas = await executar(supabase.from('dias').delete().eq('user_id', exigirUsuario()).eq('dia', dia).select('dia'));
   if (apagadas.length === 0) {
     throw new ErroApi('dia sem registro', 404);
   }
@@ -175,12 +182,15 @@ function exigirId(id) {
 }
 
 /**
- * @description Jornadas do usuário logado: as atribuições (com o nome do modelo) e as versões dos modelos delas
+ * @description Jornadas de um usuário (o logado, por padrão; outro só para o ADM da empresa): as atribuições
+ *   (com o nome do modelo) e as versões dos modelos delas
+ * @param {string} [userId]
  * @returns {Promise<{atribuicoes: Array<{desde: string, modeloId: string, nome: string}>, versoesPorModelo: Map}>}
  */
-async function minhaJornada() {
+async function minhaJornada(userId = exigirUsuario()) {
+  exigirId(userId);
   const linhas = await executar(supabase.from('atribuicoes_jornada')
-    .select('desde, modelo_id, modelos_jornada(nome)').eq('user_id', exigirUsuario()).order('desde'));
+    .select('desde, modelo_id, modelos_jornada(nome)').eq('user_id', userId).order('desde'));
   const ids = [...new Set(linhas.map((linha) => linha.modelo_id))];
   const versoes = ids.length
     ? await executar(supabase.from('versoes_jornada').select(`modelo_id, ${COLUNAS_JORNADAS}`).in('modelo_id', ids))
@@ -209,6 +219,14 @@ async function jornadasDaEmpresa() {
     atribuicoes: atribuicoes.map((linha) => ({ userId: linha.user_id, desde: linha.desde, modeloId: linha.modelo_id })),
     membros,
   };
+}
+
+/**
+ * @description Membros da empresa do ADM logado (a RLS de `perfis` limita à empresa dele)
+ * @returns {Promise<Array<{id: string, nome: string, email: string, ativo: boolean}>>}
+ */
+async function membrosDaEmpresa() {
+  return executar(supabase.from('perfis').select('id, nome, email, ativo').order('nome'));
 }
 
 /**
@@ -398,6 +416,7 @@ export const api = {
   salvarPomodoro,
   minhaJornada,
   jornadasDaEmpresa,
+  membrosDaEmpresa,
   salvarModeloJornada,
   apagarModeloJornada,
   salvarVersaoJornada,

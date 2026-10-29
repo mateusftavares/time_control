@@ -15,6 +15,7 @@ O schema inteiro está em `supabase/migrations/`, aplicado em ordem pelo `supaba
 | `20261029150000_status_commit_e_teste.sql` | Status `commit_realizado` (só na branch do dev) e `pendente_teste` (no pacote, fora da master) em `tarefas`. |
 | `20261030120000_empresas.sql` | Tabela `empresas`, `perfis.empresa_id` e `perfis.super_admin`, um ADM por empresa (índice `perfis_um_adm_por_empresa` + trigger `manter_adm_da_empresa`, que substitui `manter_um_admin`), funções `minha_empresa`, `eh_super_admin` e `transferir_adm`, e `perfil_ativo`/`eh_admin` passando a exigir empresa ativa. Coloca os usuários existentes na empresa "TimEver"; o admin atual vira o ADM dela e o super ADM. |
 | `20261030150000_jornadas_da_empresa.sql` | Jornadas da empresa: `modelos_jornada`, `versoes_jornada` e `atribuicoes_jornada`, função `da_minha_empresa`, trigger `conferir_atribuicao_jornada` e RLS (todos leem, só o ADM grava). As vigências de cada usuário viram um modelo "Jornada de <nome>" atribuído desde a primeira. A tabela antiga `jornadas` fica só leitura até o front novo entrar no ar. |
+| `20261030180000_adm_le_ponto_da_empresa.sql` | Policy de leitura em `dias` para o ADM da empresa (`eh_admin()` e `da_minha_empresa(user_id)`). Gravar e apagar continuam só do dono. |
 
 ## Tabelas
 
@@ -114,7 +115,8 @@ Substituída pelas tabelas acima. Fica só leitura enquanto o front antigo pode 
 |---|---|---|
 | `perfis` | o próprio; o ADM lê os da empresa dele | cliente: só `nome`, `avatar_path`, `cor_destaque`, `superficie` e `fundo` do próprio perfil, e só se ativo. Papel, ativo, empresa e super ADM: só a função de usuários (service role) ou o SQL Editor. |
 | `empresas` | a própria; o super ADM lê todas | ninguém pelo cliente |
-| `dias`, `pomodoro`, `tarefas` | só as próprias linhas, com perfil ativo numa empresa ativa | idem |
+| `dias` | as próprias; o ADM lê as dos membros da empresa | só as próprias, com perfil ativo numa empresa ativa |
+| `pomodoro`, `tarefas` | só as próprias linhas, com perfil ativo numa empresa ativa | idem |
 | `modelos_jornada`, `versoes_jornada` | todos da empresa | só o ADM da empresa |
 | `atribuicoes_jornada` | as próprias; o ADM lê as da empresa | só o ADM, e só para membros da empresa dele |
 | `jornadas` (antiga) | só as próprias linhas | ninguém (só leitura) |

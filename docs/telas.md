@@ -43,7 +43,7 @@ No **Hoje**, o cartão "Tarefas de hoje" lista as vencidas, as do dia e as em an
 3. O saldo calculado é conferido contra o saldo oficial do espelho. Dias que divergem ficam em laranja, com o valor do TiqueTaque ao lado.
 4. "Gravar" manda tudo num lote só (`gravarLote`) e recarrega do servidor.
 
-## Empresa (`empresa.js`): Usuários e Jornadas para o ADM, Todas as empresas para o super ADM
+## Empresa (`empresa.js`): Usuários, Jornadas e Ponto da equipe para o ADM, Todas as empresas para o super ADM
 
 A cápsula mostra "Empresa" para o ADM da empresa e para o super ADM; cada um vê só as abas do seu papel.
 
@@ -58,6 +58,12 @@ A cápsula mostra "Empresa" para o ADM da empresa e para o super ADM; cada um v�
 - **Jornadas da empresa:** lista dos modelos, com o resumo da versão vigente e quantas pessoas o usam hoje. "Criar" cadastra um modelo novo pelo nome.
 - **Editor do modelo:** renomear, apagar (só sem ninguém no histórico), vigências e, para a selecionada, a data de início, os horários de cada dia da semana, a tolerância antes e depois e o modo (acumulativo ou individual). "Nova vigência" cria uma versão daqui para a frente. Editar ou apagar uma vigência antiga recalcula os dias dela de todos que usam o modelo, com confirmação.
 - **Quem usa cada jornada:** cada membro com a jornada de hoje, o histórico de atribuições (com ✕ para tirar uma) e "Trocar a partir de": modelo e data. Data no passado pede confirmação, porque recalcula o banco dele.
+
+### Ponto da equipe (`equipe.js`), só o ADM
+
+- Escolha a pessoa: aparecem a jornada dela hoje, o banco acumulado, o saldo e o trabalhado do mês e os dias sem marcação.
+- Embaixo, o histórico por mês (o atual aberto), com as marcações, o trabalhado e o saldo de cada dia. É só leitura: cada pessoa corrige o próprio ponto.
+- O cálculo é o mesmo da tela Banco, com os dias e a jornada da pessoa escolhida.
 
 ### Todas as empresas (`plataforma.js` + função `empresas.mjs`), só o super ADM
 

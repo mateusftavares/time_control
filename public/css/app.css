@@ -735,9 +735,18 @@ body[data-autenticando] .shell { visibility: hidden; }
 .empresa-secao { display: flex; flex-direction: column; gap: 18px; }
 .empresa-secao[hidden] { display: none; }
 .empresa-acoes { justify-content: space-between; }
-.modelos-jornada { flex: 1 1 280px; max-width: 380px; min-width: 0; }
-.modelos .vigencia { width: 100%; }
-.modelos .vigencia b { font-family: var(--fonte); font-size: 14px; }
+.modelos-jornada .cartao-cabeca { justify-content: space-between; }
+.empresa-secao > .jornada { flex: none; }
+.modelos-jornada .cartao-cabeca .modelo-form { flex: 0 1 420px; }
+.lista-modelos { min-width: 640px; }
+.modelo-linha {
+  display: grid; grid-template-columns: minmax(160px, 1fr) minmax(240px, 2fr) 110px 96px;
+  gap: 12px; align-items: center; padding: 10px 10px; border-top: 1px solid var(--elevado); border-radius: 8px; font-size: 13px;
+}
+.modelo-linha.cabeca-tabela { border-top: 0; padding-top: 0; }
+.modelo-linha > b { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.modelo-linha .botao { justify-self: end; }
+.modelo-linha[aria-current="true"] { background: var(--acento-fundo); border-top-color: transparent; }
 .modelo-form { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0; }
 .modelo-form input, .atribuir select, .atribuir input {
   height: 36px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--borda-forte);
@@ -783,6 +792,15 @@ body[data-autenticando] .shell { visibility: hidden; }
 .convite-empresa { flex-wrap: wrap; padding: 10px 14px 14px; }
 .convite-empresa input { flex: 1 1 160px; }
 
+.equipe-escolha { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+.equipe-membro { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--texto-secundario); }
+.equipe-membro select {
+  height: 38px; min-width: 220px; padding: 0 10px; border-radius: 9px; border: 1px solid var(--borda-forte);
+  background: var(--campo); color: var(--texto); font-size: 14px; outline: none;
+}
+.equipe-membro select:focus { border-color: var(--acento); }
+.linha-leitura { cursor: default; }
+
 .minha-jornada { display: flex; flex-direction: column; gap: 6px; }
 .minha-jornada b { font-size: 15px; }
 .minha-jornada-historico { margin: 4px 0 0; padding-left: 18px; }
@@ -790,7 +808,6 @@ body[data-autenticando] .shell { visibility: hidden; }
 @media (max-width: 791px) {
   .convite { max-width: none; }
   .perfil-coluna { max-width: none; }
-  .modelos-jornada { max-width: none; }
 }
 
 /* ---------- tarefas ---------- */

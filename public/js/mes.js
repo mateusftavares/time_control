@@ -1,15 +1,15 @@
-import { hoje, hhmm, textoSaldo, rotuloDia, diaDaSemana, somaMes, DIAS_SEMANA, MESES } from '/shared/tempo.js';
-import { avaliar, carga as cargaDoRegistro, ehUtil, cargaPadraoDe } from '/shared/regras.js';
-import { jornadaDe, inicioDoHistorico, textoTolerancia } from '/shared/jornada.js';
+import { hoje, hhmm, textoSaldo, rotuloDia, diaDaSemana, DIAS_SEMANA, MESES } from '/shared/tempo.js';
+import { avaliar, carga as cargaDoRegistro, cargaPadraoDe } from '/shared/regras.js';
+import { jornadaDe, textoTolerancia } from '/shared/jornada.js';
+import {
+  diasDoMes as diasDoMesDe, mesesDoHistorico, totaisDosDias, ROTULO_DO_ESTADO, ESTADOS_ABONADOS,
+} from '/shared/banco.js';
 import * as store from './registros.js';
 import { elementos, escapar } from './util.js';
 
 const ORIGEM = 'mes';
-const ROTULO = {
-  pendente: 'Sem marcação', aberto: 'Em aberto', normal: 'Trabalhado',
-  feriado: 'Feriado', folga: 'Folga', compensacao: 'Compensação',
-};
-const ABONADOS = ['feriado', 'folga', 'compensacao'];
+const ROTULO = ROTULO_DO_ESTADO;
+const ABONADOS = ESTADOS_ABONADOS;
 const FILTROS = {
   todos: () => true,
   pendentes: (avaliacao) => avaliacao.estado === 'pendente',
@@ -43,65 +43,10 @@ function mesComAno(anoMes) {
   return `${nomeDoMes(anoMes)} ${anoMes.slice(0, 4)}`;
 }
 
-/* Dias úteis do mês até hoje: é isso que faz um dia trabalhado e não registrado
-   aparecer sozinho como "sem marcação". Fim de semana só entra se tiver registro. */
-function diasDoMes(anoMes) {
-  const [ano, mes] = anoMes.split('-').map(Number);
-  const ultimo = new Date(ano, mes, 0).getDate();
-  const limite = hoje();
-  const dias = [];
-
-  for (let d = 1; d <= ultimo; d++) {
-    const dia = `${anoMes}-${String(d).padStart(2, '0')}`;
-    if (dia > limite) {
-      break;
-    }
-    if (ehUtil(dia) || store.obter(dia)) {
-      dias.push(dia);
-    }
-  }
-  return dias;
-}
-
-/* Do mês mais antigo até o atual, do mais recente para o mais velho. */
-function mesesDisponiveis() {
-  const atual = hoje().slice(0, 7);
-  const inicio = inicioDoHistorico();
-  let maisAntigo = inicio && inicio < atual ? inicio : atual;
-
-  store.todos().forEach((registro) => {
-    const anoMes = registro.dia.slice(0, 7);
-    if (anoMes < maisAntigo) {
-      maisAntigo = anoMes;
-    }
-  });
-
-  const meses = [];
-  for (let cursor = atual; cursor >= maisAntigo; cursor = somaMes(cursor, -1)) {
-    meses.push(cursor);
-  }
-  return meses;
-}
-
-function totaisDe(dias) {
-  const totais = { saldo: 0, trabalhado: 0, fechados: 0, pendentes: 0 };
-
-  dias.forEach((dia) => {
-    const avaliacao = avaliar(store.obter(dia));
-    if (avaliacao.estado === 'pendente') {
-      totais.pendentes++;
-      return;
-    }
-    if (avaliacao.saldo === null) {
-      return;
-    }
-    totais.saldo += avaliacao.saldo;
-    totais.fechados++;
-    totais.trabalhado += avaliacao.trabalhado ?? 0;
-  });
-
-  return totais;
-}
+/* As regras do histórico estão em shared/banco.js; aqui, com os dias e a jornada do usuário logado. */
+const diasDoMes = (anoMes) => diasDoMesDe(anoMes, store.todos(), hoje());
+const mesesDisponiveis = () => mesesDoHistorico(store.todos(), hoje());
+const totaisDe = (dias) => totaisDosDias(dias, store.todos());
 
 function celula(valor) {
   return valor ? `<span class="num">${escapar(valor)}</span>` : '<span class="num vazio">—</span>';

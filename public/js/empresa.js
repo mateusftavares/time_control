@@ -3,11 +3,14 @@ import { aoTrocarDeTela, telaAtual } from './navegacao.js';
 import { iniciarUsuarios } from './usuarios.js';
 import { iniciarJornadasDaEmpresa, abrirJornadas } from './jornadas.js';
 import { iniciarPlataforma, abrirPlataforma } from './plataforma.js';
+import { iniciarEquipe, abrirEquipe } from './equipe.js';
 
-const el = elementos(['empresaAbas', 'usuariosEmpresa', 'empresaPapel', 'empresaUsuarios', 'empresaJornadas', 'empresaPlataforma']);
+const el = elementos([
+  'empresaAbas', 'usuariosEmpresa', 'empresaPapel', 'empresaUsuarios', 'empresaJornadas', 'empresaEquipe', 'empresaPlataforma',
+]);
 
-const SECOES = { usuarios: 'empresaUsuarios', jornadas: 'empresaJornadas', plataforma: 'empresaPlataforma' };
-const AO_ABRIR = { jornadas: abrirJornadas, plataforma: abrirPlataforma };
+const SECOES = { usuarios: 'empresaUsuarios', jornadas: 'empresaJornadas', equipe: 'empresaEquipe', plataforma: 'empresaPlataforma' };
+const AO_ABRIR = { jornadas: abrirJornadas, equipe: abrirEquipe, plataforma: abrirPlataforma };
 
 let abaAtual = null;
 
@@ -26,7 +29,8 @@ function mostrarAba(aba) {
 }
 
 /**
- * @description Liga a tela Empresa: Usuários e Jornadas para o ADM da empresa, Todas as empresas para o super ADM
+ * @description Liga a tela Empresa: Usuários, Jornadas e Ponto da equipe para o ADM da empresa; Todas as empresas
+ *   para o super ADM
  * @param {{id: string, papel: string, super_admin: boolean, empresa_id: string, empresas: {nome: string}}} perfil
  */
 export function iniciarEmpresa(perfil) {
@@ -34,13 +38,14 @@ export function iniciarEmpresa(perfil) {
   el.usuariosEmpresa.textContent = perfil.empresas?.nome ?? '';
   el.empresaPapel.textContent = [ehAdm && 'ADM da empresa', perfil.super_admin && 'super ADM da plataforma'].filter(Boolean).join(' · ');
 
-  const abas = [...(ehAdm ? ['usuarios', 'jornadas'] : []), ...(perfil.super_admin ? ['plataforma'] : [])];
+  const abas = [...(ehAdm ? ['usuarios', 'jornadas', 'equipe'] : []), ...(perfil.super_admin ? ['plataforma'] : [])];
   el.empresaAbas.querySelectorAll('[data-aba]').forEach((botao) => {
     botao.hidden = !abas.includes(botao.dataset.aba);
   });
   if (ehAdm) {
     iniciarUsuarios(perfil);
     iniciarJornadasDaEmpresa();
+    iniciarEquipe();
   }
   if (perfil.super_admin) {
     iniciarPlataforma(perfil);
