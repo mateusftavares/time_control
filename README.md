@@ -13,8 +13,9 @@ Ponto do dia, banco de horas e pomodoro, na web. O nome junta *time* e *ever*.
 |---|---|
 | **Hoje** | Bater ponto (botão ou Enter), previsão de saída com almoço mínimo de 1 h, linha do dia e correção das marcações. |
 | **Banco de horas** | Saldo acumulado, gráfico do saldo por mês, histórico por mês e editor de dia (feriado, folga, compensação). |
+| **Tarefas** | Demandas do trabalho em lista ou Kanban: cliente, prazo, prioridade, checklist, anotações, commits, recorrência e o tempo de foco do pomodoro. |
 | **Importar** | Lê o espelho do TiqueTaque colado e confere cada dia contra o saldo oficial antes de gravar. |
-| **Pomodoro** | Popup no topo: foco de 25 min, descanso de 5 min e longo de 10 min, com pausas por motivo. |
+| **Pomodoro** | Popup no topo: foco de 25 min, descanso de 5 min e longo de 10 min, com pausas por motivo e foco por tarefa. |
 | **Usuários** (admin) | Convidar, mudar o papel, desativar e reativar. |
 | **Meu perfil** | Nome, foto, aparência (cor, vidro e fundo), senha e jornada com tolerância por vigência. |
 

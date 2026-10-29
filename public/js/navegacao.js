@@ -1,4 +1,4 @@
-const TELAS = ['hoje', 'banco', 'importar', 'perfil'];
+const TELAS = ['hoje', 'banco', 'tarefas', 'importar', 'perfil'];
 const TELAS_RESTRITAS = ['usuarios'];
 const ouvintes = new Set();
 
@@ -13,7 +13,7 @@ export function liberarTela(tela) {
 }
 
 /**
- * @description Tela pedida no endereço (#hoje, #banco, #importar, #perfil, #usuarios); Hoje quando não reconhece
+ * @description Tela pedida no endereço (#hoje, #banco, #tarefas, #importar, #perfil, #usuarios); Hoje quando não reconhece
  * @returns {string}
  */
 export function telaAtual() {

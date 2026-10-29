@@ -6,7 +6,7 @@ Todas as telas do app estão em `public/index.html`, como `<section class="tela"
 
 - **Cabeçalho (`.topo`):** logo TimEver e uma faixa de resumo com banco acumulado, saldo do mês atual, dias sem marcação, saída prevista e o mini pomodoro. Quem pinta os números do resumo é `mes.js`; a saída prevista vem de `ponto.js`.
 - **Mini pomodoro e popup:** "Pomodoro 25:00 ⌄" é um botão (`#pomoAbrir`) que abre o pomodoro completo num popup logo abaixo (`#pomoPopup`). O popup fecha clicando fora ou com Esc. O botão ao lado ("Começar foco", "Pausar" ou "Voltar ao trabalho") age sem abrir o popup, exceto na pausa, que abre o popup para perguntar o motivo. No celular, o pomodoro vai para o começo da faixa de resumo, que rola para o lado.
-- **Cápsula de navegação (`.capsula`):** barra flutuante embaixo, no estilo do iOS, com Hoje, Banco, Importar, Usuários (só admin) e Perfil (com a foto). O item ativo fica mais largo que os outros, em formato de cápsula.
+- **Cápsula de navegação (`.capsula`):** barra flutuante embaixo, no estilo do iOS, com Hoje, Banco, Tarefas, Importar, Usuários (só admin) e Perfil (com a foto). O item ativo fica mais largo que os outros, em formato de cápsula.
 - **Faixa de erro (`#aviso`):** aparece quando uma chamada ao Supabase falha e some na próxima que der certo.
 - **Título da aba:** com o pomodoro rodando, mostra o tempo dele; senão, a saída prevista; sem nenhum dos dois, "TimEver".
 
@@ -25,6 +25,16 @@ Todas as telas do app estão em `public/index.html`, como `<section class="tela"
 - **Histórico:** meses recolhíveis (o atual começa aberto), com o resumo do mês na linha do cabeçalho. Cada dia mostra a situação, as quatro marcações, o trabalhado e o saldo.
 - **Filtros:** Todos, Sem marcação e Abonados.
 - **Editor de dia:** clicar num dia abre o painel lateral para trocar o tipo (Dia trabalhado, Feriado, Folga, Compensação), corrigir as marcações, ver a prévia do saldo e salvar ou apagar.
+
+## Tarefas (`tarefas.js` + `tarefas-store.js`)
+
+- **Nova tarefa rápida:** título e Enter. No filtro "Para hoje", a tarefa já nasce com prazo de hoje.
+- **Lista:** filtros Abertas, Para hoje, Concluídas e Todas, mais cliente/projeto e busca (título, cliente, anotações, código e branch dos commits). Cada linha tem o círculo de concluir/reabrir, o título com cliente, prazo (laranja hoje, vermelho vencido), progresso do checklist, número de commits, recorrência e foco, o status e o botão de focar. A borda esquerda marca prioridade urgente (vermelha) e alta (laranja); a tarefa em foco fica destacada.
+- **Kanban:** colunas A fazer, Em andamento, Commit realizado, Pendente de teste, Aguardando e Concluída (as 15 mais recentes). Arrastar um cartão para outra coluna muda o status. No celular, o arrastar não existe: muda-se o status pelo editor. A visão escolhida fica guardada no navegador.
+- **Editor lateral:** título, cliente/projeto (com sugestões dos já usados), status, prioridade, prazo, repetição, anotações, checklist (novo item com Enter), commits (código, branch e data, que já vem com hoje) e o resumo de foco com "Focar nesta tarefa". Apagar pede confirmação.
+- **Focar:** o botão ▶ (linha, cartão ou editor) escolhe a tarefa no pomodoro e, se o relógio estiver parado no foco, já começa.
+
+No **Hoje**, o cartão "Tarefas de hoje" lista as vencidas, as do dia e as em andamento, com as mesmas ações.
 
 ## Importar do TiqueTaque (`importacao.js` + `shared/espelho.js`)
 

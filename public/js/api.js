@@ -4,6 +4,7 @@ import {
   COLUNAS_DIAS, COLUNAS_JORNADAS, paraRegistro, paraLinha, umPorDia, paraJornada, linhaDeJornada,
 } from '/shared/linhas.js';
 import { normalizarJornada } from '/shared/jornada.js';
+import { normalizarTarefa, COLUNAS_TAREFAS, paraTarefa, linhaDeTarefa } from '/shared/tarefas.js';
 import { PREFERENCIAS, opcaoValida } from './aparencia.js';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js';
 import { supabase } from './supabase.js';
@@ -256,6 +257,44 @@ async function urlDaFoto(caminho) {
   return error ? null : data.signedUrl;
 }
 
+async function listarTarefas() {
+  const linhas = await executar(supabase.from('tarefas').select(COLUNAS_TAREFAS).order('criado_em'));
+  return linhas.map(paraTarefa);
+}
+
+/**
+ * @description Cria (sem id) ou altera (com id) uma tarefa e devolve a versão gravada
+ * @param {object} entrada
+ * @returns {Promise<object>}
+ */
+async function salvarTarefa(entrada) {
+  const resultado = normalizarTarefa(entrada);
+  if (!resultado.ok) {
+    throw new ErroApi(resultado.erros[0], 400, resultado.erros);
+  }
+  const linha = linhaDeTarefa(resultado.tarefa);
+  const consulta = resultado.tarefa.id
+    ? supabase.from('tarefas').update(linha).eq('id', resultado.tarefa.id)
+    : supabase.from('tarefas').insert({ ...linha, user_id: exigirUsuario() });
+  return paraTarefa(await executar(consulta.select(COLUNAS_TAREFAS).single()));
+}
+
+async function apagarTarefa(id) {
+  await executar(supabase.from('tarefas').delete().eq('id', id));
+  return null;
+}
+
+/**
+ * @description Soma tempo de foco e pomodoros a uma tarefa, no servidor (incremento atômico)
+ * @param {string} id
+ * @param {number} ms
+ * @param {number} pomodoros - 0 ou 1
+ */
+async function somarFoco(id, ms, pomodoros) {
+  await executar(supabase.rpc('somar_foco', { p_tarefa: id, p_ms: Math.round(ms), p_pomodoros: pomodoros }));
+  return null;
+}
+
 /**
  * @description Chamadas ao Supabase, com a mesma interface da antiga API do Express. A RLS
  *   limita tudo aos dados do usuário logado. `keepalive` deixa a gravação terminar com a aba fechando
@@ -275,4 +314,8 @@ export const api = {
   enviarFoto,
   removerFoto,
   urlDaFoto,
+  listarTarefas,
+  salvarTarefa,
+  apagarTarefa,
+  somarFoco,
 };

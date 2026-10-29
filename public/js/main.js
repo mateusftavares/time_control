@@ -8,6 +8,7 @@ import { iniciarPonto } from './ponto.js';
 import { iniciarMes } from './mes.js';
 import { iniciarImportacao } from './importacao.js';
 import { iniciarPomodoro, gravarPomodoroAoSair } from './pomodoro.js';
+import { iniciarTarefas } from './tarefas.js';
 import { iniciarUsuarios } from './usuarios.js';
 import { iniciarPerfil, carregarJornadas } from './perfil.js';
 import { mostrarAviso, avisoDeFalha } from './aviso.js';
@@ -103,6 +104,7 @@ async function iniciar() {
   iniciarPonto();
   iniciarMes();
   iniciarImportacao();
+  iniciarTarefas();
   iniciarPomodoro();
 
   window.addEventListener('pagehide', () => {

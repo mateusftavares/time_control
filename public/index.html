@@ -72,6 +72,11 @@
             </div>
           </div>
 
+          <label class="pomo-tarefa">
+            <span class="texto-secundario pequeno">Focando em</span>
+            <select id="pomoTarefa"><option value="">Sem tarefa</option></select>
+          </label>
+
           <div class="pomo-controles">
             <button class="botao botao-primario" id="btnMain" type="button">Começar foco</button>
             <button class="botao botao-secundario" id="btnPause" type="button">Pausar</button>
@@ -206,8 +211,108 @@
           </div>
 
           <p class="formula mono" id="formula"></p>
+
+          <section class="cartao" aria-labelledby="hojeTarefasTitulo">
+            <div class="cartao-cabeca">
+              <h2 id="hojeTarefasTitulo">Tarefas de hoje</h2>
+              <span class="texto-mudo pequeno">vencidas, do dia e em andamento</span>
+              <a class="link-pequeno" href="#tarefas">ver todas</a>
+            </div>
+            <div class="tarefas-linhas" id="hojeTarefas"></div>
+          </section>
         </div>
 
+      </div>
+    </section>
+
+    <!-- ==================== TAREFAS ==================== -->
+    <section class="tela" data-view="tarefas" aria-labelledby="tarefasTitulo" hidden>
+      <header class="cabecalho">
+        <div class="cabecalho-texto">
+          <h1 id="tarefasTitulo">Tarefas</h1>
+          <p id="tarefasSub">Carregando…</p>
+        </div>
+        <div class="cabecalho-acoes">
+          <div class="segmentado" id="tarefasVisao" role="group" aria-label="Visualização">
+            <button type="button" data-visao="lista" aria-pressed="true">Lista</button>
+            <button type="button" data-visao="kanban" aria-pressed="false">Kanban</button>
+          </div>
+        </div>
+      </header>
+
+      <div class="cartao tarefas-barra">
+        <form class="tarefa-rapida" id="tarefaRapida" novalidate>
+          <label class="so-leitor" for="tarefaRapidaTitulo">Título da nova tarefa</label>
+          <input id="tarefaRapidaTitulo" maxlength="200" autocomplete="off" placeholder="Nova tarefa: escreva o título e tecle Enter">
+          <button class="botao botao-primario botao-pequeno" type="submit">Adicionar</button>
+        </form>
+        <div class="tarefas-filtros">
+          <div class="segmentado" id="tarefasFiltro" role="group" aria-label="Filtrar tarefas">
+            <button type="button" data-filtro="abertas" aria-pressed="true">Abertas</button>
+            <button type="button" data-filtro="hoje" aria-pressed="false">Para hoje</button>
+            <button type="button" data-filtro="concluidas" aria-pressed="false">Concluídas</button>
+            <button type="button" data-filtro="todas" aria-pressed="false">Todas</button>
+          </div>
+          <select id="tarefasCliente" aria-label="Filtrar por cliente ou projeto"></select>
+          <input id="tarefasBusca" type="search" placeholder="Buscar" aria-label="Buscar tarefas">
+        </div>
+      </div>
+
+      <div class="colunas">
+        <section class="cartao tarefas-lista" id="tarefasLista" aria-label="Lista de tarefas">
+          <div class="tarefas-linhas" id="tarefasLinhas"></div>
+        </section>
+        <section class="tarefas-kanban" id="tarefasKanban" aria-label="Quadro de tarefas" hidden></section>
+
+        <aside class="cartao editor tarefa-editor" id="tarefaEditor" aria-label="Editar tarefa" hidden>
+          <div class="editor-topo">
+            <div>
+              <span class="texto-mudo pequeno" id="tarefaEditorRotulo">Tarefa</span>
+              <h2 id="tarefaEditorTitulo">Tarefa</h2>
+            </div>
+            <button class="botao-icone" id="tarefaFechar" type="button" aria-label="Fechar">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12"></path><path d="M18 6L6 18"></path></svg>
+            </button>
+          </div>
+
+          <form class="tarefa-form" id="tarefaForm" novalidate>
+            <label>Título<input id="tTitulo" maxlength="200" autocomplete="off" required></label>
+            <label>Cliente / projeto<input id="tCliente" maxlength="80" autocomplete="off" list="tClientes"></label>
+            <datalist id="tClientes"></datalist>
+            <div class="tarefa-form-grade">
+              <label>Status<select id="tStatus"></select></label>
+              <label>Prioridade<select id="tPrioridade"></select></label>
+              <label>Prazo<input type="date" id="tPrazo"></label>
+              <label>Repetir<select id="tRecorrencia"></select></label>
+            </div>
+            <label>Anotações<textarea id="tAnotacoes" rows="4" maxlength="10000" placeholder="Link do chamado, contexto, decisões…"></textarea></label>
+
+            <fieldset class="tarefa-bloco">
+              <legend>Checklist <span class="texto-mudo pequeno" id="tChecklistProgresso"></span></legend>
+              <div class="checklist" id="tChecklist"></div>
+              <div class="tarefa-adicionar">
+                <input id="tNovoItem" maxlength="200" autocomplete="off" placeholder="Novo item e Enter" aria-label="Novo item do checklist">
+              </div>
+            </fieldset>
+
+            <fieldset class="tarefa-bloco">
+              <legend>Commits</legend>
+              <div class="commits" id="tCommits"></div>
+              <button class="botao botao-secundario botao-pequeno" id="tNovoCommit" type="button">Adicionar commit</button>
+            </fieldset>
+
+            <div class="tarefa-foco">
+              <span class="texto-secundario" id="tFoco">Sem foco registrado</span>
+              <button class="botao botao-secundario botao-pequeno" id="tFocar" type="button">Focar nesta tarefa</button>
+            </div>
+
+            <span class="texto-mudo pequeno estado" id="tarefaEstado" role="status"></span>
+            <div class="editor-acoes">
+              <button class="botao botao-primario" id="tarefaSalvar" type="submit">Salvar tarefa</button>
+              <button class="botao botao-perigo" id="tarefaApagar" type="button">Apagar</button>
+            </div>
+          </form>
+        </aside>
       </div>
     </section>
 
@@ -505,6 +610,10 @@
     <a class="capsula-item" href="#banco" data-view="banco">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10"></path><path d="M10 20V4"></path><path d="M16 20v-7"></path><path d="M22 20H2"></path></svg>
       <span>Banco</span>
+    </a>
+    <a class="capsula-item" href="#tarefas" data-view="tarefas">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h11"></path><path d="M9 12h11"></path><path d="M9 18h11"></path><path d="M3.5 6l1.5 1.5L7.5 5"></path><path d="M3.5 12l1.5 1.5L7.5 11"></path><path d="M3.5 18l1.5 1.5L7.5 17"></path></svg>
+      <span>Tarefas</span>
     </a>
     <a class="capsula-item" href="#importar" data-view="importar">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12"></path><path d="M7 10l5 5 5-5"></path><path d="M4 20h16"></path></svg>

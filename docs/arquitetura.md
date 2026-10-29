@@ -46,13 +46,15 @@ navegador (public/, módulos ES)
 | `supabase.js` | Cria o cliente supabase-js. Guarda a sessão no `localStorage` com "Lembrar de mim" e no `sessionStorage` sem ele. Usa o fluxo *implicit*, porque o convite é aberto num navegador diferente do de quem convidou e o PKCE não funcionaria. |
 | `hash-inicial.js` | Lê o `#hash` da URL antes do supabase-js limpá-lo, para detectar link de convite, de recuperação ou expirado. Precisa ser importado antes de `supabase.js`. |
 | `sessao.js` | `exigirSessao`, `carregarPerfil`, `sair`, `idDoUsuario`, `tokenAtual`. |
-| `api.js` | Todas as leituras e gravações no Supabase: dias, pomodoro, jornadas, nome, foto e preferências de aparência. Mantém a mesma interface da antiga API Express (`listarDias`, `salvarDia`...) para que as telas não precisassem mudar. |
+| `api.js` | Todas as leituras e gravações no Supabase: dias, pomodoro, jornadas, tarefas, nome, foto e preferências de aparência. Mantém a mesma interface da antiga API Express (`listarDias`, `salvarDia`...) para que as telas não precisassem mudar. |
 | `registros.js` | Fonte única dos dias carregados. Ponto e banco de horas leem e escrevem aqui. Junta rajadas de digitação numa gravação só (800 ms) e manda o pendente ao fechar a aba (`pagehide`). Quem assina recebe `{ dia, origem }` a cada mudança. |
-| `navegacao.js` | Troca de telas pelo `#hash` (`#hoje`, `#banco`, `#importar`, `#perfil`, `#usuarios`). Também marca o item ativo da cápsula e avisa os ouvintes quando a tela muda. |
+| `tarefas-store.js` | Fonte única das tarefas. A tela de Tarefas, o bloco do Hoje e o pomodoro leem daqui. Concluir uma tarefa recorrente cria a próxima ocorrência; o foco do pomodoro é somado com `somarFoco`. |
+| `tarefas.js` | Tela Tarefas (lista, Kanban com arrastar e soltar, filtros, busca, editor lateral com checklist e commits) e o bloco "Tarefas de hoje" da tela Hoje. |
+| `navegacao.js` | Troca de telas pelo `#hash` (`#hoje`, `#banco`, `#tarefas`, `#importar`, `#perfil`, `#usuarios`). Também marca o item ativo da cápsula e avisa os ouvintes quando a tela muda. |
 | `ponto.js` | Tela Hoje: marcações, previsão de saída, linha do dia e atalho Enter. |
 | `mes.js` | Tela Banco de horas: histórico por mês, editor de dia, gráfico de saldo por mês e o resumo do topo. |
 | `importacao.js` | Tela Importar: lê o espelho colado e confere cada dia contra o saldo oficial antes de gravar. |
-| `pomodoro.js` | Pomodoro: popup do topo, contagem, pausas com motivo, som, atalho Espaço e gravação periódica. |
+| `pomodoro.js` | Pomodoro: popup do topo, contagem, pausas com motivo, som, atalho Espaço e gravação periódica. Também guarda a tarefa em foco e soma nela o tempo de foco a cada gravação (`focarEm`, `tarefaEmFoco`). |
 | `perfil.js` | Meu perfil: nome, foto, aparência, troca de senha e jornada por vigência. |
 | `aparencia.js` | Lista das preferências visuais (cor, cartões, fundo) e aplicação delas no `<html>`. |
 | `usuarios.js` | Tela de Usuários (admin). Chama `/api/usuarios`. |
@@ -72,6 +74,7 @@ navegador (public/, módulos ES)
 | `espelho.js` | Leitura do texto do TiqueTaque e conferência contra o saldo oficial. |
 | `pomodoro.js` | Durações, motivos de pausa e sanitização do estado gravado. |
 | `linhas.js` | Ponte entre o registro do app (camelCase) e a linha da tabela (snake_case). |
+| `tarefas.js` | Validação de uma tarefa (inclusive commits e checklist), recorrência, ordem de trabalho, situação do prazo e a ponte com a linha da tabela. |
 
 ## Fluxo de inicialização do app
 

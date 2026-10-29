@@ -74,3 +74,12 @@ A regra antiga, congelada, está em `scripts/regras-legado.js`. O `test/jornada.
 - **Relógio confiável:** a contagem usa o horário de término (`endsAt`), não um contador que decrementa. Fechar a aba ou suspender o computador não atrasa o pomodoro.
 - **Um estado por dia:** ao virar o dia, o anterior é gravado como estava e o novo começa zerado.
 - **Atalho Espaço:** na tela Hoje e fora de campos, começa, pausa ou retoma.
+- **Foco por tarefa:** o popup tem "Focando em". O tempo de foco que corre com uma tarefa escolhida é somado nela a cada gravação do pomodoro (a cada 5 s, na troca de fase ou de tarefa), e cada foco concluído conta 1 pomodoro na tarefa. A tarefa escolhida continua de um dia para o outro e no "Zerar dia".
+
+## Tarefas (`shared/tarefas.js` + `js/tarefas-store.js`)
+
+- **Campos:** título (obrigatório), cliente ou projeto, status, prioridade, prazo, recorrência, anotações, checklist e commits (código de 7 a 40 caracteres hexadecimais, branch e data).
+- **Ordem de trabalho:** prioridade (urgente, alta, normal, baixa), depois o prazo mais próximo (sem prazo por último), depois a mais antiga.
+- **Tarefas de hoje:** as abertas que venceram, vencem hoje ou estão em andamento.
+- **Recorrência:** ao concluir uma tarefa que se repete, nasce a próxima com o mesmo título, cliente, prioridade, anotações e checklist (desmarcado), sem commits nem foco. O prazo anda a partir do prazo atual (ou de hoje, se não houver) até passar de hoje. Na mensal, dia 31 cai no último dia dos meses mais curtos.
+- **Concluída em:** carimbada pelo banco ao concluir e apagada ao reabrir.

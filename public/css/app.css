@@ -735,3 +735,114 @@ body[data-autenticando] .shell { visibility: hidden; }
   .convite { max-width: none; }
   .perfil-coluna { max-width: none; }
 }
+
+/* ---------- tarefas ---------- */
+.pomo-tarefa { display: flex; flex-direction: column; gap: 6px; }
+.pomo-tarefa select, .tarefas-filtros select, .tarefas-filtros input, .tarefa-rapida input,
+.tarefa-form input, .tarefa-form select, .tarefa-form textarea {
+  height: 38px; padding: 0 10px; border-radius: 9px; border: 1px solid var(--borda-forte);
+  background: var(--campo); color: var(--texto); font-size: 14px; outline: none; min-width: 0;
+}
+.pomo-tarefa select:focus, .tarefas-filtros select:focus, .tarefas-filtros input:focus, .tarefa-rapida input:focus,
+.tarefa-form input:focus, .tarefa-form select:focus, .tarefa-form textarea:focus { border-color: var(--acento); }
+
+.tarefas-barra { gap: 12px; }
+.tarefa-rapida { display: flex; gap: 8px; margin: 0; }
+.tarefa-rapida input { flex: 1; height: 40px; }
+.tarefas-filtros { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.tarefas-filtros input { flex: 1 1 180px; }
+
+.tarefas-lista { flex: 999 1 560px; min-width: 0; padding: 8px 10px; gap: 0; }
+.tarefas-linhas { display: flex; flex-direction: column; }
+.tarefas-vazio { margin: 10px; }
+.tarefa-linha {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: 10px;
+  padding: 8px 6px 8px 10px; border-top: 1px solid var(--sub-borda); border-left: 3px solid transparent;
+}
+.tarefa-linha:first-child { border-top: 0; }
+.tarefa-linha:hover { background: var(--painel); }
+.tarefa-linha[data-prioridade="urgente"], .tarefa-cartao[data-prioridade="urgente"] { border-left-color: var(--erro); }
+.tarefa-linha[data-prioridade="alta"], .tarefa-cartao[data-prioridade="alta"] { border-left-color: var(--negativo); }
+.tarefa-linha[data-prioridade="baixa"] .tarefa-titulo { color: var(--texto-secundario); }
+.tarefa-linha[data-foco="true"], .tarefa-cartao[data-foco="true"] { background: var(--acento-fundo); }
+.tarefa-linha[data-status="concluida"] .tarefa-titulo, .tarefa-cartao[data-status="concluida"] .tarefa-titulo {
+  color: var(--texto-mudo); text-decoration: line-through;
+}
+
+.tarefa-check {
+  width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--borda-botao); background: transparent;
+  display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; flex: none;
+}
+.tarefa-check svg { width: 14px; height: 14px; fill: none; stroke: transparent; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+.tarefa-check:hover { border-color: var(--positivo); }
+.tarefa-check:hover svg { stroke: var(--positivo); }
+.tarefa-check[aria-pressed="true"] { background: var(--positivo); border-color: var(--positivo); }
+.tarefa-check[aria-pressed="true"] svg { stroke: var(--positivo-fundo); }
+
+.tarefa-abrir {
+  display: flex; flex-direction: column; gap: 4px; min-width: 0; text-align: left;
+  border: 0; background: none; padding: 2px 0; cursor: pointer;
+}
+.tarefa-titulo { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tarefa-abrir:hover .tarefa-titulo { color: var(--acento-claro); }
+.tarefa-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; font-size: 12px; color: var(--texto-mudo); }
+.tarefa-meta .chip { padding: 2px 8px; font-size: 11px; }
+.tarefa-prazo[data-situacao="vencida"] { color: var(--erro-claro); font-weight: 600; }
+.tarefa-prazo[data-situacao="hoje"] { color: var(--almoco-claro); font-weight: 600; }
+
+.etiqueta-status {
+  font: 600 11px var(--fonte); border-radius: 6px; padding: 3px 8px; white-space: nowrap;
+  color: var(--texto-rotulo); background: var(--elevado);
+}
+.etiqueta-status[data-status="em_andamento"] { color: var(--acento-claro); background: var(--acento-fundo); }
+.etiqueta-status[data-status="aguardando"] { color: var(--almoco-claro); background: var(--almoco-fundo); }
+.etiqueta-status[data-status="commit_realizado"] { color: var(--compensacao-claro); background: var(--compensacao-fundo); }
+.etiqueta-status[data-status="pendente_teste"] { color: var(--abonado-claro); background: var(--abonado-fundo); }
+.etiqueta-status[data-status="concluida"] { color: var(--positivo-claro); background: var(--positivo-fundo); }
+
+.tarefa-focar svg { fill: var(--texto-secundario); stroke: none; }
+.tarefa-focar:hover svg { fill: var(--acento-claro); }
+
+.tarefas-kanban { flex: 999 1 560px; min-width: 0; display: grid; grid-template-columns: repeat(6, minmax(200px, 1fr)); gap: 12px; overflow-x: auto; }
+.kanban-coluna {
+  display: flex; flex-direction: column; gap: 10px; padding: 12px; min-height: 180px;
+  border-radius: var(--raio); background: var(--painel); border: 1px dashed transparent;
+}
+.kanban-coluna.alvo { border-color: var(--acento); background: var(--acento-fundo); }
+.kanban-cabeca { display: flex; align-items: center; justify-content: space-between; }
+.kanban-cartoes { display: flex; flex-direction: column; gap: 8px; }
+.tarefa-cartao {
+  display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; cursor: grab;
+  border-radius: 10px; background: var(--sup-fundo); border: 1px solid var(--sup-borda); border-left: 3px solid var(--sup-borda);
+}
+.tarefa-cartao.arrastando { opacity: .45; }
+.tarefa-cartao .tarefa-titulo { white-space: normal; }
+.tarefa-cartao-acoes { display: flex; align-items: center; justify-content: space-between; }
+
+.tarefa-editor { max-width: 420px; }
+.tarefa-form { display: flex; flex-direction: column; gap: 12px; margin: 0; }
+.tarefa-form label { display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: var(--texto-secundario); }
+.tarefa-form textarea { height: auto; padding: 10px; resize: vertical; font-size: 13px; line-height: 1.45; }
+.tarefa-form-grade { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.tarefa-bloco { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 12px; border-radius: 12px; border: 1px solid var(--sub-borda); }
+.tarefa-bloco legend { padding: 0 4px; font-size: 12px; font-weight: 600; color: var(--texto-rotulo); }
+.checklist { display: flex; flex-direction: column; gap: 2px; }
+.checklist-item { display: flex; align-items: center; gap: 8px; }
+.checklist-item .caixa { flex: 1; min-width: 0; }
+.checklist-item .caixa span { overflow-wrap: anywhere; }
+.checklist-item .caixa input:checked + span { color: var(--texto-mudo); text-decoration: line-through; }
+.tarefa-form .tarefa-adicionar input { width: 100%; height: 34px; font-size: 13px; }
+.commits { display: flex; flex-direction: column; gap: 10px; }
+.commit-linha { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr) auto; gap: 8px; align-items: end; }
+.commit-linha label:nth-child(3) { grid-column: 1 / 3; }
+.commit-linha .botao-icone { grid-column: 3; grid-row: 1; align-self: end; margin-bottom: 8px; }
+.tarefa-form .commit-linha input { height: 34px; font-size: 13px; }
+.tarefa-bloco > .botao { align-self: flex-start; }
+.tarefa-foco { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; font-size: 13px; }
+
+@media (max-width: 791px) {
+  .tarefa-editor { max-width: none; }
+  .tarefa-linha { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .tarefa-linha .etiqueta-status { display: none; }
+  .tarefas-kanban { grid-template-columns: repeat(6, minmax(220px, 82vw)); }
+}

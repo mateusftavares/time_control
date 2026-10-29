@@ -11,6 +11,8 @@ O schema inteiro está em `supabase/migrations/`, aplicado em ordem pelo `supaba
 | `20261027180100_perfil_e_avatares.sql` | O dono pode alterar `nome` e `avatar_path`. Cria o bucket privado `avatares` com policies por pasta. |
 | `20261028120000_cor_de_destaque.sql` | Coluna `perfis.cor_destaque`. |
 | `20261028150000_aparencia.sql` | Colunas `perfis.superficie` e `perfis.fundo`. |
+| `20261029120000_tarefas.sql` | Tabela `tarefas`, trigger `carimbar_tarefa` (datas de gravação, criação e conclusão no servidor), RLS e a função `somar_foco`. |
+| `20261029150000_status_commit_e_teste.sql` | Status `commit_realizado` (só na branch do dev) e `pendente_teste` (no pacote, fora da master) em `tarefas`. |
 
 ## Tabelas
 
@@ -47,7 +49,28 @@ O trigger `ao_criar_usuario` (em `auth.users`) cria o perfil. O nome vem do meta
 | Coluna | Tipo | Regra |
 |---|---|---|
 | `user_id`, `dia` | uuid, date | PK |
-| `estado` | jsonb | objeto de até 4 KB. Os campos (em inglês, porque é o formato já gravado) são `phase`, `running`, `paused`, `reason`, `remaining`, `endsAt`, `pausedAt`, `breaks`, `pomodoros`, `focusMs`, `pauseMs`, `sound` e `auto`. O front sempre passa o estado por `sanitizarEstado` antes de usar. |
+| `estado` | jsonb | objeto de até 4 KB. Os campos (em inglês, porque é o formato já gravado) são `phase`, `running`, `paused`, `reason`, `remaining`, `endsAt`, `pausedAt`, `breaks`, `pomodoros`, `focusMs`, `pauseMs`, `sound` e `auto`, mais `tarefa` (uuid da tarefa em foco, ou `null`). O front sempre passa o estado por `sanitizarEstado` antes de usar. |
+
+### `tarefas`: demandas do trabalho de cada usuário
+
+| Coluna | Tipo | Regra |
+|---|---|---|
+| `id` | uuid, PK | gerado pelo banco |
+| `user_id` | uuid | padrão `auth.uid()` |
+| `titulo` | text | 1 a 200 caracteres |
+| `cliente` | text | cliente ou projeto, até 80 caracteres |
+| `status` | text | `a_fazer` (padrão), `em_andamento`, `commit_realizado`, `pendente_teste`, `aguardando` ou `concluida` |
+| `prioridade` | text | `urgente`, `alta`, `normal` (padrão) ou `baixa` |
+| `prazo` | date | opcional |
+| `recorrencia` | text | `null`, `diaria`, `semanal` ou `mensal` |
+| `anotacoes` | text | até 10 mil caracteres |
+| `checklist` | jsonb | lista de `{ texto, feito }`, até 16 KB |
+| `commits` | jsonb | lista de `{ hash, branch, data }`, até 16 KB |
+| `foco_ms`, `pomodoros` | bigint, integer | somados pelo pomodoro via `somar_foco` |
+| `concluida_em` | timestamptz | carimbado pelo trigger ao concluir; volta a `null` ao reabrir |
+| `criado_em`, `atualizado_em` | timestamptz | carimbados pelo trigger |
+
+`somar_foco(tarefa, ms, pomodoros)` soma no próprio `UPDATE` (duas abas não se sobrescrevem), limita cada chamada a 1 h e 1 pomodoro e roda como o usuário (`security invoker`), então a RLS vale.
 
 ### `jornadas`: vigências da jornada de cada usuário
 
@@ -63,7 +86,7 @@ O trigger `ao_criar_usuario` (em `auth.users`) cria o perfil. O nome vem do meta
 | Tabela | Ler | Inserir / alterar / apagar |
 |---|---|---|
 | `perfis` | o próprio; admin lê todos | cliente: só `nome`, `avatar_path`, `cor_destaque`, `superficie` e `fundo` do próprio perfil, e só se ativo. Papel e ativo: só a função de usuários (service role) ou o SQL Editor. |
-| `dias`, `pomodoro`, `jornadas` | só as próprias linhas, com perfil ativo | idem |
+| `dias`, `pomodoro`, `jornadas`, `tarefas` | só as próprias linhas, com perfil ativo | idem |
 | `storage.objects` (bucket `avatares`) | só a própria pasta `<uid>/` | só a própria pasta, com perfil ativo |
 
 Detalhes que importam:

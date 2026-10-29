@@ -5,6 +5,7 @@ import { elementos, escapar, textoComDestaque, teclaLimpa } from './util.js';
 import { tituloPomodoro } from './titulo.js';
 import { mostrarAviso, esconderAviso, avisoDeFalha } from './aviso.js';
 import { telaAtual } from './navegacao.js';
+import * as tarefas from './tarefas-store.js';
 
 const MINUTO = 60 * 1000;
 const INTERVALO_GRAVACAO_MS = 5000;
@@ -22,7 +23,7 @@ const el = elementos([
   'btnMain', 'btnPause', 'btnSkip', 'btnReset', 'btnResume', 'pauseBar', 'pauseWhy', 'pauseElapsed',
   'reasonPanel', 'reasonGrid', 'btnCancelPause', 'btnSound', 'soundLabel', 'btnAuto',
   'statPomos', 'statFocus', 'reasonList', 'reasonEmpty',
-  'ladoPomodoro', 'ladoPomoFase', 'ladoPomoTempo', 'ladoPomoBotao', 'pomoAbrir', 'pomoPopup',
+  'ladoPomodoro', 'ladoPomoFase', 'ladoPomoTempo', 'ladoPomoBotao', 'pomoAbrir', 'pomoPopup', 'pomoTarefa',
 ]);
 
 /* Os campos do estado seguem em inglês (phase, remaining, breaks...) porque é o formato já gravado no banco. */
@@ -30,6 +31,10 @@ let estado = estadoVazio();
 let diaDoEstado = hoje();
 let ultimoTique = Date.now();
 let ultimaGravacao = 0;
+let ligado = false;
+let focoPendenteMs = 0;
+let pomodorosPendentes = 0;
+const ouvintesDaTarefa = new Set();
 
 const duracaoDaFase = () => DURACAO[estado.phase];
 const proximoDescansoEhLongo = () => (estado.breaks + 1) % DESCANSOS_POR_CICLO === 0;
@@ -39,8 +44,30 @@ function mmss(ms) {
   return String(Math.floor(segundos / 60)).padStart(2, '0') + ':' + String(segundos % 60).padStart(2, '0');
 }
 
+/* O foco da tarefa vai ao servidor junto com cada gravação do pomodoro, não a cada tique. */
+function descarregarFoco() {
+  const id = estado.tarefa;
+  const ms = focoPendenteMs;
+  const pomodoros = pomodorosPendentes;
+  // antes de as tarefas carregarem o lote fica guardado; se o envio falhar, volta para o próximo
+  if (!id || !tarefas.carregado() || (ms <= 0 && pomodoros <= 0)) {
+    return;
+  }
+  focoPendenteMs = 0;
+  pomodorosPendentes = 0;
+  tarefas.somarFoco(id, ms, pomodoros).then((enviado) => {
+    if (!enviado && estado.tarefa === id) {
+      focoPendenteMs += ms;
+      pomodorosPendentes += pomodoros;
+    }
+  });
+}
+
 async function gravar(opcoes) {
   ultimaGravacao = Date.now();
+  if (!opcoes?.keepalive) {
+    descarregarFoco();
+  }
   try {
     await api.salvarPomodoro(diaDoEstado, estado, opcoes);
     esconderAviso();
@@ -218,6 +245,7 @@ function avancar(concluiu) {
   if (estado.phase === 'foco') {
     if (concluiu) {
       estado.pomodoros++;
+      pomodorosPendentes = estado.tarefa ? 1 : 0;
     }
     estado.phase = proximoDescansoEhLongo() ? 'longo' : 'descanso';
   } else {
@@ -302,9 +330,9 @@ function trocarDeDiaSeVirou() {
     return;
   }
   gravar();
-  const { sound, auto } = estado;
+  const { sound, auto, tarefa } = estado;
   diaDoEstado = hoje();
-  estado = { ...estadoVazio(), sound, auto };
+  estado = { ...estadoVazio(), sound, auto, tarefa };
 }
 
 function tique() {
@@ -319,7 +347,11 @@ function tique() {
   } else if (estado.running) {
     // depois de o computador suspender, o delta pode ser de horas: o foco só conta até onde ele acabaria
     if (estado.phase === 'foco') {
-      estado.focusMs += Math.min(delta, estado.remaining);
+      const focado = Math.min(delta, estado.remaining);
+      estado.focusMs += focado;
+      if (estado.tarefa) {
+        focoPendenteMs += focado;
+      }
     }
     estado.remaining = Math.max(0, estado.endsAt - agora);
     if (estado.remaining === 0) {
@@ -399,9 +431,11 @@ function ligarEventos() {
     }
   });
 
+  el.pomoTarefa.addEventListener('change', () => escolherTarefa(el.pomoTarefa.value || null));
+
   el.btnReset.addEventListener('click', () => {
-    const { sound, auto } = estado;
-    estado = { ...estadoVazio(), sound, auto };
+    const { sound, auto, tarefa } = estado;
+    estado = { ...estadoVazio(), sound, auto, tarefa };
     painelDeMotivo(false);
     gravar();
     render();
@@ -410,6 +444,80 @@ function ligarEventos() {
   el.btnSound.addEventListener('click', () => alternar('sound'));
   el.btnAuto.addEventListener('click', () => alternar('auto'));
   document.addEventListener('keydown', atalhoDeEspaco);
+}
+
+/* A lista de opções só é refeita quando as tarefas ou a escolha mudam: refazer a cada tique fecharia o select aberto. */
+let assinaturaDoSeletor = '';
+
+function pintarSeletorDeTarefa() {
+  const escolhida = tarefas.obter(estado.tarefa);
+  const opcoes = tarefas.abertas();
+  if (escolhida && !opcoes.includes(escolhida)) {
+    opcoes.unshift(escolhida);
+  }
+  const assinatura = JSON.stringify([escolhida?.id, opcoes.map((tarefa) => [tarefa.id, tarefa.titulo, tarefa.cliente])]);
+  if (assinatura === assinaturaDoSeletor) {
+    return;
+  }
+  assinaturaDoSeletor = assinatura;
+  const semTarefa = new Option('Sem tarefa', '');
+  el.pomoTarefa.replaceChildren(semTarefa, ...opcoes.map((tarefa) => {
+    const rotulo = tarefa.cliente ? `${tarefa.titulo} · ${tarefa.cliente}` : tarefa.titulo;
+    return new Option(rotulo, tarefa.id);
+  }));
+  el.pomoTarefa.value = escolhida ? escolhida.id : '';
+}
+
+function escolherTarefa(id) {
+  if (id === estado.tarefa) {
+    return;
+  }
+  descarregarFoco();
+  estado.tarefa = id;
+  gravar();
+  pintarSeletorDeTarefa();
+  ouvintesDaTarefa.forEach((ouvinte) => ouvinte(id));
+}
+
+/* Tarefa apagada (aqui ou noutra aba) deixa de receber foco; só depois de as tarefas terem carregado. */
+function conferirTarefaEscolhida() {
+  if (estado.tarefa && tarefas.carregado() && !tarefas.obter(estado.tarefa)) {
+    focoPendenteMs = 0;
+    pomodorosPendentes = 0;
+    escolherTarefa(null);
+    return;
+  }
+  pintarSeletorDeTarefa();
+}
+
+/**
+ * @description Tarefa que está recebendo o foco agora, ou null
+ * @returns {string|null}
+ */
+export function tarefaEmFoco() {
+  return estado.tarefa;
+}
+
+/**
+ * @description Avisa quando a tarefa em foco muda
+ * @param {(id: string|null) => void} ouvinte
+ */
+export function aoMudarTarefaEmFoco(ouvinte) {
+  ouvintesDaTarefa.add(ouvinte);
+}
+
+/**
+ * @description Põe a tarefa em foco e, se o relógio estiver parado no foco, já começa a contar
+ * @param {string} id
+ */
+export function focarEm(id) {
+  if (!ligado) {
+    return;
+  }
+  escolherTarefa(id);
+  if (!estado.running && !estado.paused && estado.phase === 'foco') {
+    comecarContagem();
+  }
 }
 
 /**
@@ -438,6 +546,9 @@ export async function iniciarPomodoro() {
 
   ligarEventos();
   pintarAlternancias();
+  tarefas.assinar(conferirTarefaEscolhida);
+  conferirTarefaEscolhida();
+  ligado = true;
   ultimoTique = Date.now();
   render();
   setInterval(tique, 250);

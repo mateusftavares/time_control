@@ -136,6 +136,7 @@ Os scripts usam `public/shared/` (as mesmas regras do site), `scripts/conferenci
 | `jornada.test.js` | vigências e equivalência com a regra antiga em cerca de 2 mil dias gerados |
 | `espelho.test.js` | leitura do espelho do TiqueTaque e conferência do saldo |
 | `linhas.test.js` | conversão entre registro e linha do banco |
+| `tarefas.test.js` | validação da tarefa e dos commits, recorrência, ordem de trabalho, tarefas de hoje e ponte com a linha do banco |
 | `regras-usuarios.test.js` | validação dos pedidos da função de usuários e regra do último admin |
 | `acesso.test.js` | mensagens de erro do Auth |
 

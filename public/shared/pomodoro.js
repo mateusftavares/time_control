@@ -11,6 +11,7 @@ export const DESCANSOS_POR_CICLO = 5;
 
 export const MOTIVOS_PAUSA = ['Treinamento', 'Reunião', 'Almoço', 'Outro'];
 export const FASES = Object.keys(DURACAO);
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
  * @description Estado de um dia sem nenhum pomodoro
@@ -31,6 +32,7 @@ export function estadoVazio() {
     pauseMs: Object.fromEntries(MOTIVOS_PAUSA.map((motivo) => [motivo, 0])),
     sound: true,
     auto: true,
+    tarefa: null,
   };
 }
 
@@ -61,5 +63,6 @@ export function sanitizarEstado(entrada) {
     pauseMs: Object.fromEntries(MOTIVOS_PAUSA.map((motivo) => [motivo, numero(pausas[motivo])])),
     sound: origem.sound !== false,
     auto: origem.auto !== false,
+    tarefa: typeof origem.tarefa === 'string' && UUID.test(origem.tarefa) ? origem.tarefa : null,
   };
 }
