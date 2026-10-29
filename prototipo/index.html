@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Protótipo · Tarefas nos três tamanhos</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&display=swap">
+  <style>
+    body { margin: 0; padding: 24px; background: #0A0C10; color: #E7EAF2; font: 14px/1.4 'IBM Plex Sans', sans-serif; }
+    h1 { font-size: 20px; margin: 0 0 4px; }
+    p { margin: 0 0 20px; color: #9AA3BC; }
+    .grade { display: flex; flex-wrap: wrap; gap: 28px; align-items: flex-start; }
+    figure { margin: 0; display: flex; flex-direction: column; gap: 8px; }
+    figcaption { font-weight: 600; color: #B9C0D4; }
+    figcaption a { color: #8DB4E2; font-weight: 400; margin-left: 8px; }
+    .moldura { overflow: hidden; border: 1px solid #2D3242; border-radius: 18px; background: #0E1015; }
+    .moldura iframe { border: 0; transform-origin: 0 0; display: block; }
+  </style>
+</head>
+<body>
+  <h1>Tarefas — protótipo da Fase 1</h1>
+  <p>Cada quadro é a mesma página em uma largura. Clique nas tarefas, troque as abas, mude o status. Os links abrem a página inteira.</p>
+  <div class="grade" id="grade"></div>
+  <script>
+    const QUADROS = [
+      { titulo: 'Monitor largo · 1600px (tela dividida)', largura: 1600, altura: 940, escala: 0.62, url: 'tarefas.html?abrir=112' },
+      { titulo: 'Tablet · 1024px (folha por cima)', largura: 1024, altura: 768, escala: 0.62, url: 'tarefas.html?abrir=112&aba=atividade' },
+      { titulo: 'Celular · lista', largura: 390, altura: 844, escala: 0.8, url: 'tarefas.html' },
+      { titulo: 'Celular · tarefa aberta', largura: 390, altura: 844, escala: 0.8, url: 'tarefas.html?abrir=112' },
+      { titulo: 'Celular · atividade', largura: 390, altura: 844, escala: 0.8, url: 'tarefas.html?abrir=112&aba=atividade' },
+    ];
+    const grade = document.getElementById('grade');
+    for (const quadro of QUADROS) {
+      const figura = document.createElement('figure');
+      const legenda = document.createElement('figcaption');
+      legenda.textContent = quadro.titulo;
+      const link = document.createElement('a');
+      link.href = quadro.url;
+      link.target = '_blank';
+      link.textContent = 'abrir';
+      legenda.append(link);
+      const moldura = document.createElement('div');
+      moldura.className = 'moldura';
+      moldura.style.width = `${quadro.largura * quadro.escala}px`;
+      moldura.style.height = `${quadro.altura * quadro.escala}px`;
+      const iframe = document.createElement('iframe');
+      iframe.src = quadro.url;
+      iframe.title = quadro.titulo;
+      iframe.width = quadro.largura;
+      iframe.height = quadro.altura;
+      iframe.style.transform = `scale(${quadro.escala})`;
+      moldura.append(iframe);
+      figura.append(legenda, moldura);
+      grade.append(figura);
+    }
+  </script>
+</body>
+</html>

@@ -43,11 +43,11 @@ No **Hoje**, o cartão "Tarefas de hoje" lista as vencidas, as do dia e as em an
 3. O saldo calculado é conferido contra o saldo oficial do espelho. Dias que divergem ficam em laranja, com o valor do TiqueTaque ao lado.
 4. "Gravar" manda tudo num lote só (`gravarLote`) e recarrega do servidor.
 
-## Usuários, só admin (`usuarios.js` + função `usuarios.mjs`)
+## Usuários, só o ADM da empresa (`usuarios.js` + função `usuarios.mjs`)
 
-- Lista nome, e-mail, papel, situação (Ativo, Inativo ou Convidado, quando o convite ainda não foi aceito) e último acesso.
-- Mudar o papel, desativar e reativar. O último admin ativo não pode ser rebaixado nem desativado.
-- **Convidar:** nome, e-mail e papel. O convidado recebe o e-mail e define a senha em `definir-senha.html`.
+- Lista os membros da empresa: nome, e-mail, papel, situação (Ativo, Inativo ou Convidado, quando o convite ainda não foi aceito) e último acesso.
+- Desativar e reativar. **Transferir o papel de ADM:** escolher "ADM" no papel de um membro ativo; quem transferiu vira usuário e perde esta tela. A linha do ADM fica travada: ele não pode ser rebaixado nem desativado sem transferir antes.
+- **Convidar:** nome e e-mail. O convidado entra como usuário na empresa do ADM, recebe o e-mail e define a senha em `definir-senha.html`.
 
 ## Meu perfil (`perfil.js`)
 

@@ -48,12 +48,15 @@ export function idDoUsuario() {
 }
 
 /**
- * @description Perfil do usuário logado (nome, e-mail, papel, ativo); a RLS só devolve o próprio
- * @returns {Promise<{id: string, nome: string, email: string, papel: string, ativo: boolean}|null>}
+ * @description Perfil do usuário logado (nome, e-mail, papel, ativo) com a empresa dele; a empresa só vem
+ *   quando o perfil e ela estão ativos (RLS de `empresas`)
+ * @returns {Promise<{id: string, nome: string, email: string, papel: string, ativo: boolean, empresas: {nome: string}|null}|null>}
  */
 export async function carregarPerfil() {
   const { data, error } = await supabase
-    .from('perfis').select('id, nome, email, papel, ativo, avatar_path, cor_destaque, superficie, fundo').eq('id', idDoUsuario()).maybeSingle();
+    .from('perfis')
+    .select('id, nome, email, papel, ativo, super_admin, avatar_path, cor_destaque, superficie, fundo, empresas(nome)')
+    .eq('id', idDoUsuario()).maybeSingle();
   if (error) {
     throw error;
   }

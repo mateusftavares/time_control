@@ -7,8 +7,6 @@ const FORMATO_EMAIL = /^[^\s@<>"']+@[^\s@<>"']+\.[^\s@<>"']+$/;
 const TAMANHO_MAXIMO_EMAIL = 254;
 const CARACTERES_DE_CONTROLE = /[\u0000-\u001F\u007F]/;
 
-const ehAdminAtivo = (perfil) => perfil.papel === 'admin' && perfil.ativo === true;
-
 /**
  * @description Token do cabeçalho Authorization ("Bearer <jwt>"), ou null
  * @param {string|null|undefined} cabecalho
@@ -42,15 +40,32 @@ export function normalizarEmail(email) {
 }
 
 /**
- * @description Se a mudança num perfil deixaria o sistema sem nenhum admin ativo
- * @param {Array<{id: string, papel: string, ativo: boolean}>} perfis - todos os perfis
- * @param {string} id - perfil alterado
- * @param {{papel?: string, ativo?: boolean}} mudanca
- * @returns {boolean}
+ * @description Por que o ADM não pode fazer a mudança num membro da empresa (cada empresa tem exatamente
+ *   um ADM: deixar de ser ADM só transferindo o papel a outro membro ativo), ou null quando pode
+ * @param {{id: string, papel: string, ativo: boolean}|undefined} alvo - perfil da mesma empresa
+ * @param {string} idDoAdm - quem pede
+ * @param {{acao: string, papel?: string}} pedido
+ * @returns {{status: number, erro: string}|null}
  */
-export function deixariaSemAdmin(perfis, id, mudanca) {
-  const depois = perfis.map((perfil) => (perfil.id === id ? { ...perfil, ...mudanca } : perfil));
-  return !depois.some(ehAdminAtivo);
+export function recusaDaMudanca(alvo, idDoAdm, pedido) {
+  if (!alvo) {
+    return { status: 404, erro: 'usuário não encontrado nesta empresa' };
+  }
+  if (pedido.acao === 'alterarPapel') {
+    if (pedido.papel === 'usuario') {
+      return alvo.papel === 'admin'
+        ? { status: 409, erro: 'para deixar de ser ADM, transfira o papel para outro membro' }
+        : null;
+    }
+    if (alvo.id === idDoAdm || alvo.papel === 'admin') {
+      return { status: 409, erro: 'essa pessoa já é a ADM da empresa' };
+    }
+    return alvo.ativo ? null : { status: 409, erro: 'reative o usuário antes de torná-lo ADM' };
+  }
+  if (pedido.acao === 'desativar' && alvo.papel === 'admin') {
+    return { status: 409, erro: 'o ADM não pode ser desativado: transfira o papel antes' };
+  }
+  return null;
 }
 
 /**
@@ -91,12 +106,12 @@ function validarConvite(origem) {
     return { ok: false, erro: `nome deve ter até ${TAMANHO_MAXIMO_NOME} caracteres, sem quebras de linha` };
   }
 
-  const papel = origem.papel ?? 'usuario';
-  if (!PAPEIS.includes(papel)) {
-    return { ok: false, erro: `papel deve ser um de: ${PAPEIS.join(', ')}` };
+  // a empresa já tem o seu ADM: convidado entra como usuário e vira ADM só por transferência
+  if ((origem.papel ?? 'usuario') !== 'usuario') {
+    return { ok: false, erro: 'o convite é sempre como usuário; para trocar o ADM, transfira o papel' };
   }
 
-  return { ok: true, pedido: { acao: 'convidar', email, nome, papel } };
+  return { ok: true, pedido: { acao: 'convidar', email, nome } };
 }
 
 /**

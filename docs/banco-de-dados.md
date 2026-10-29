@@ -13,6 +13,7 @@ O schema inteiro está em `supabase/migrations/`, aplicado em ordem pelo `supaba
 | `20261028150000_aparencia.sql` | Colunas `perfis.superficie` e `perfis.fundo`. |
 | `20261029120000_tarefas.sql` | Tabela `tarefas`, trigger `carimbar_tarefa` (datas de gravação, criação e conclusão no servidor), RLS e a função `somar_foco`. |
 | `20261029150000_status_commit_e_teste.sql` | Status `commit_realizado` (só na branch do dev) e `pendente_teste` (no pacote, fora da master) em `tarefas`. |
+| `20261030120000_empresas.sql` | Tabela `empresas`, `perfis.empresa_id` e `perfis.super_admin`, um ADM por empresa (índice `perfis_um_adm_por_empresa` + trigger `manter_adm_da_empresa`, que substitui `manter_um_admin`), funções `minha_empresa`, `eh_super_admin` e `transferir_adm`, e `perfil_ativo`/`eh_admin` passando a exigir empresa ativa. Coloca os usuários existentes na empresa "TimEver"; o admin atual vira o ADM dela e o super ADM. |
 
 ## Tabelas
 
@@ -23,8 +24,10 @@ O schema inteiro está em `supabase/migrations/`, aplicado em ordem pelo `supaba
 | `id` | uuid, PK | `auth.users.id`; apagar o usuário apaga o perfil |
 | `nome` | text | até 100 caracteres, sem caracteres de controle |
 | `email` | text | cópia do e-mail do Auth, mantida por trigger |
-| `papel` | text | `admin` ou `usuario` (padrão) |
+| `papel` | text | `admin` (o ADM da empresa, exatamente um por empresa) ou `usuario` (padrão) |
 | `ativo` | boolean | `false` corta o acesso aos dados na hora |
+| `empresa_id` | uuid | empresa do usuário; sem empresa (convite em andamento) não há acesso aos dados |
+| `super_admin` | boolean | super ADM da plataforma: cria empresas e convida o ADM delas; não lê os dados das empresas |
 | `avatar_path` | text | `null` ou exatamente `<id>/avatar.jpg` |
 | `cor_destaque` | text | `azul` (padrão), `amarelo`, `verde` ou `vermelho` |
 | `superficie` | text | `opaco` (padrão), `sutil` ou `liquido` |
@@ -32,6 +35,17 @@ O schema inteiro está em `supabase/migrations/`, aplicado em ordem pelo `supaba
 | `criado_em` | timestamptz | |
 
 O trigger `ao_criar_usuario` (em `auth.users`) cria o perfil. O nome vem do metadado `nome` do convite ou, sem ele, da parte do e-mail antes do `@`.
+
+### `empresas`: o tenant
+
+| Coluna | Tipo | Regra |
+|---|---|---|
+| `id` | uuid, PK | |
+| `nome` | text | 1 a 100 caracteres, sem caracteres de controle |
+| `ativa` | boolean | `false` corta o acesso de todos os membros na hora |
+| `criado_em` | timestamptz | |
+
+Só a função do Netlify (service role) ou o SQL Editor criam e alteram empresas. O membro lê a própria; o super ADM lê todas.
 
 ### `dias`: um registro por usuário e dia
 
@@ -85,14 +99,16 @@ O trigger `ao_criar_usuario` (em `auth.users`) cria o perfil. O nome vem do meta
 
 | Tabela | Ler | Inserir / alterar / apagar |
 |---|---|---|
-| `perfis` | o próprio; admin lê todos | cliente: só `nome`, `avatar_path`, `cor_destaque`, `superficie` e `fundo` do próprio perfil, e só se ativo. Papel e ativo: só a função de usuários (service role) ou o SQL Editor. |
-| `dias`, `pomodoro`, `jornadas`, `tarefas` | só as próprias linhas, com perfil ativo | idem |
+| `perfis` | o próprio; o ADM lê os da empresa dele | cliente: só `nome`, `avatar_path`, `cor_destaque`, `superficie` e `fundo` do próprio perfil, e só se ativo. Papel, ativo, empresa e super ADM: só a função de usuários (service role) ou o SQL Editor. |
+| `empresas` | a própria; o super ADM lê todas | ninguém pelo cliente |
+| `dias`, `pomodoro`, `jornadas`, `tarefas` | só as próprias linhas, com perfil ativo numa empresa ativa | idem |
 | `storage.objects` (bucket `avatares`) | só a própria pasta `<uid>/` | só a própria pasta, com perfil ativo |
 
 Detalhes que importam:
 - As policies chamam `public.perfil_ativo()` e `public.eh_admin()`. São funções `security definer` que leem `perfis` sem passar pela RLS, o que evita recursão na policy da própria tabela. Ninguém de fora (`anon`) pode executá-las.
 - Além da policy, o privilégio de update é **por coluna** (`grant update (nome, avatar_path, ...)`). Mesmo que uma policy fosse afrouxada por engano, o cliente continuaria sem poder mexer em `papel` ou `ativo`.
-- **`manter_um_admin`:** trigger em `update of papel, ativo` e em `delete` de `perfis`. Recusa a mudança que deixaria o sistema sem admin ativo, até pelo SQL Editor ou ao apagar o usuário no dashboard. A função de usuários traduz esse erro para HTTP 409.
+- **`manter_adm_da_empresa`:** constraint trigger adiado para o fim da transação, em insert, `update of papel, ativo, empresa_id` e delete de `perfis`. Recusa a transação que deixaria uma empresa com membros sem ADM ativo (rebaixar, desativar, mover ou apagar o ADM), até pelo SQL Editor ou ao apagar o usuário no dashboard. Por ser adiado, `transferir_adm` pode rebaixar o ADM antigo e promover o novo em sequência. A função de usuários traduz esse erro para HTTP 409.
+- **`perfis_um_adm_por_empresa`:** índice único parcial; dois ADMs na mesma empresa falham na hora, inclusive em pedidos simultâneos.
 
 ## Storage: fotos
 

@@ -95,16 +95,17 @@ navegador (public/, módulos ES)
 ## Função de usuários (`netlify/functions/usuarios.mjs`)
 
 - `POST /api/usuarios` com `{ acao, ... }`. As ações são `listar`, `convidar`, `alterarPapel`, `desativar` e `reativar`.
-- Confere o JWT no Supabase Auth e exige que o dono seja **admin ativo**.
-- A validação dos pedidos e a regra do último admin ficam em `src/regras-usuarios.js`, em funções puras e testadas.
+- Confere o JWT no Supabase Auth e exige que o dono seja o **ADM ativo de uma empresa ativa**. Lista e altera só os perfis da empresa dele.
+- A validação dos pedidos e as regras do ADM único (`recusaDaMudanca`) ficam em `src/regras-usuarios.js`, em funções puras e testadas.
+- **Papel:** a empresa tem exatamente um ADM. Promover alguém a ADM é uma **transferência** (`transferir_adm`, no banco): quem pediu vira usuário na mesma transação. O ADM não pode ser rebaixado nem desativado sem transferir antes.
 - **Desativar** marca `ativo = false` e bane o login (`ban_duration`), o que impede renovar o token. **Reativar** desfaz as duas coisas. Os dados do usuário ficam guardados.
-- O convite usa `inviteUserByEmail`, com o link apontando para `definir-senha.html`.
+- O convite usa `inviteUserByEmail`, com o link apontando para `definir-senha.html`. O convidado entra sempre como usuário, na empresa do ADM; se colocá-lo na empresa falhar, o usuário do Auth é apagado (convite desfeito).
 
 ## Segurança, em resumo
 
-- RLS em todas as tabelas. `dias`, `pomodoro` e `jornadas` só aceitam `user_id = auth.uid()` com o perfil **ativo**: desativar corta o acesso na hora, mesmo com um token ainda válido.
-- O cliente só pode alterar em `perfis` as colunas `nome`, `avatar_path`, `cor_destaque`, `superficie` e `fundo`, e só do próprio perfil (privilégio por coluna mais policy). Papel e ativo ficam fora do alcance do cliente.
-- O trigger `manter_um_admin` impede ficar sem nenhum admin ativo, mesmo pelo SQL Editor.
+- RLS em todas as tabelas. `dias`, `pomodoro`, `jornadas` e `tarefas` só aceitam `user_id = auth.uid()` com o perfil **ativo numa empresa ativa**: desativar o usuário ou a empresa corta o acesso na hora, mesmo com um token ainda válido.
+- O cliente só pode alterar em `perfis` as colunas `nome`, `avatar_path`, `cor_destaque`, `superficie` e `fundo`, e só do próprio perfil (privilégio por coluna mais policy). Papel, ativo, empresa e super ADM ficam fora do alcance do cliente; `empresas` é só leitura para ele.
+- O trigger `manter_adm_da_empresa` impede que uma empresa com membros fique sem ADM ativo, mesmo pelo SQL Editor; o índice `perfis_um_adm_por_empresa` impede dois ADMs.
 - A CSP do `netlify.toml` aceita scripts só do próprio site e do jsDelivr (supabase-js com versão fixa) e conexões só com o site e o Supabase. Não há `unsafe-inline` nem iframes.
 - Nomes e e-mails vão para a tela com `textContent` ou escapados, nunca como HTML cru.
 - Fotos ficam num bucket privado e aparecem por URL assinada de 1 h. O navegador recorta a foto e a regrava em JPEG, o que remove o EXIF (que pode ter a localização).

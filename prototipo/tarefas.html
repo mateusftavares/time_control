@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Protótipo · Tarefas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap">
+  <link rel="stylesheet" href="../public/css/app.css">
+  <link rel="stylesheet" href="tarefas.css">
+</head>
+<body>
+<div class="manchas" aria-hidden="true"><i class="mancha mancha-1"></i><i class="mancha mancha-2"></i><i class="mancha mancha-3"></i><i class="mancha mancha-4"></i></div>
+<div class="shell">
+  <main class="conteudo">
+    <header class="topo">
+      <a class="marca" href="#">
+        <img class="marca-icone" src="../public/img/timever-icone.svg" alt="" width="34" height="34">
+        <span class="marca-texto"><span class="marca-nome">TimEver</span><span class="marca-sub">Seu tempo, sob controle</span></span>
+      </a>
+      <section class="resumo" aria-label="Resumo">
+        <div class="resumo-item"><span class="rotulo">Banco acumulado</span><b class="mono">+12:40</b></div>
+        <div class="resumo-item"><span class="rotulo">Mês atual</span><b class="mono">+03:15</b></div>
+        <div class="resumo-item"><span class="rotulo">Saída prevista</span><b class="mono">18:07</b></div>
+      </section>
+    </header>
+
+    <section class="tela" aria-labelledby="tarefasTitulo">
+      <header class="cabecalho">
+        <div class="cabecalho-texto">
+          <h1 id="tarefasTitulo">Tarefas</h1>
+          <p id="tarefasSub"></p>
+        </div>
+        <div class="cabecalho-acoes">
+          <div class="segmentado" id="visao" role="group" aria-label="Visualização">
+            <button type="button" data-visao="tabela" aria-pressed="true">Lista</button>
+            <button type="button" data-visao="kanban" aria-pressed="false">Kanban</button>
+          </div>
+        </div>
+      </header>
+
+      <div class="cartao tarefas-barra">
+        <form class="tarefa-rapida" id="tarefaRapida" novalidate>
+          <label class="so-leitor" for="tarefaRapidaTitulo">Título da nova tarefa</label>
+          <input id="tarefaRapidaTitulo" maxlength="200" autocomplete="off" placeholder="Nova tarefa: escreva o título e tecle Enter">
+          <button class="botao botao-primario botao-pequeno" type="submit">Adicionar</button>
+        </form>
+        <div class="tarefas-filtros">
+          <div class="segmentado" id="filtro" role="group" aria-label="Filtrar tarefas">
+            <button type="button" data-filtro="abertas" aria-pressed="true">Abertas</button>
+            <button type="button" data-filtro="hoje" aria-pressed="false">Para hoje</button>
+            <button type="button" data-filtro="concluidas" aria-pressed="false">Concluídas</button>
+            <button type="button" data-filtro="todas" aria-pressed="false">Todas</button>
+          </div>
+          <label class="agrupar">
+            <span class="texto-mudo pequeno">Agrupar</span>
+            <select id="agrupar">
+              <option value="status">por status</option>
+              <option value="cliente">por cliente</option>
+              <option value="nenhum">sem grupos</option>
+            </select>
+          </label>
+          <input id="busca" type="search" placeholder="Buscar" aria-label="Buscar tarefas">
+        </div>
+      </div>
+
+      <div class="tarefas-area" id="area">
+        <div class="tarefas-principal" id="principal"></div>
+        <div class="divisor" id="divisor" role="separator" aria-orientation="vertical" aria-label="Redimensionar o detalhe" tabindex="0" hidden></div>
+        <aside class="cartao detalhe" id="detalhe" aria-labelledby="detalheTitulo" hidden></aside>
+      </div>
+    </section>
+  </main>
+
+  <div class="veu" id="veu" hidden></div>
+  <div class="menu-status" id="menuStatus" role="menu" aria-label="Mudar o status" hidden></div>
+
+  <nav class="capsula" aria-label="Navegação principal">
+    <a class="capsula-item" href="#"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg><span>Hoje</span></a>
+    <a class="capsula-item" href="#"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10"></path><path d="M10 20V4"></path><path d="M16 20v-7"></path><path d="M22 20H2"></path></svg><span>Banco</span></a>
+    <a class="capsula-item ativo" href="#"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h11"></path><path d="M9 12h11"></path><path d="M9 18h11"></path><path d="M3.5 6l1.5 1.5L7.5 5"></path><path d="M3.5 12l1.5 1.5L7.5 11"></path><path d="M3.5 18l1.5 1.5L7.5 17"></path></svg><span>Tarefas</span></a>
+    <a class="capsula-item" href="#"><span class="avatar" aria-hidden="true">M</span><span>Perfil</span></a>
+  </nav>
+</div>
+<script src="tarefas.js"></script>
+</body>
+</html>

@@ -1,7 +1,7 @@
 {
   "name": "TimEver",
   "short_name": "TimEver",
-  "description": "Ponto, banco de horas e foco",
+  "description": "Ponto, banco de horas, tarefas e foco",
   "lang": "pt-BR",
   "start_url": "/",
   "scope": "/",

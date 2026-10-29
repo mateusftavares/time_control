@@ -113,9 +113,12 @@ Atenção: o texto do convite diz "24 horas", mas a validade configurada é de 1
 3. **Auth:** aplique a configuração e os modelos da seção acima. Configure um SMTP próprio: o SMTP embutido do Supabase só entrega para a equipe do projeto.
 4. **Front:** ponha a URL e a anon key em `public/js/config.js` e o `<ref>` do projeto na CSP do `netlify.toml` (`img-src` e `connect-src`).
 5. **Netlify:** importe o repositório sem comando de build e crie as variáveis `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY` (secret), ambas com escopo Functions, e opcionalmente `SITE_URL`. Faça um deploy novo depois de criar as variáveis.
-6. **Primeiro admin:** convide o seu e-mail pelo painel do Supabase (Authentication → Users → Invite), defina a senha pelo link e promova no SQL Editor:
+6. **Primeira empresa e super ADM:** convide o seu e-mail pelo painel do Supabase (Authentication → Users → Invite), defina a senha pelo link e rode no SQL Editor (empresa, papel e super ADM juntos, numa instrução só, por causa da trava de ADM da empresa):
    ```sql
-   update public.perfis set papel = 'admin' where email = 'seu@email.com';
+   with empresa as (insert into public.empresas (nome) values ('Minha empresa') returning id)
+   update public.perfis
+      set empresa_id = (select id from empresa), papel = 'admin', super_admin = true
+    where email = 'seu@email.com';
    ```
    Os próximos convites saem da tela Usuários.
 

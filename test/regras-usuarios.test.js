@@ -1,38 +1,36 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  lerToken, idValido, normalizarEmail, deixariaSemAdmin, validarPedido, montarListaUsuarios,
+  lerToken, idValido, normalizarEmail, recusaDaMudanca, validarPedido, montarListaUsuarios,
 } from '../src/regras-usuarios.js';
 
 const ID_A = '11111111-1111-4111-8111-111111111111';
 const ID_B = '22222222-2222-4222-8222-222222222222';
 const ID_C = '33333333-3333-4333-8333-333333333333';
 
-const perfis = [
-  { id: ID_A, papel: 'admin', ativo: true },
-  { id: ID_B, papel: 'usuario', ativo: true },
-  { id: ID_C, papel: 'admin', ativo: false },
-];
+const ADM = { id: ID_A, papel: 'admin', ativo: true };
+const ATIVO = { id: ID_B, papel: 'usuario', ativo: true };
+const INATIVO = { id: ID_C, papel: 'usuario', ativo: false };
 
-test('último admin ativo não pode ser rebaixado nem desativado', () => {
-  assert.equal(deixariaSemAdmin(perfis, ID_A, { papel: 'usuario' }), true);
-  assert.equal(deixariaSemAdmin(perfis, ID_A, { ativo: false }), true);
+test('alvo fora da empresa do ADM não existe para ele', () => {
+  assert.equal(recusaDaMudanca(undefined, ID_A, { acao: 'desativar' }).status, 404);
 });
 
-test('admin inativo não conta como admin', () => {
-  assert.equal(deixariaSemAdmin(perfis, ID_B, { ativo: false }), false);
-  assert.equal(deixariaSemAdmin([{ id: ID_C, papel: 'admin', ativo: false }], ID_C, { papel: 'usuario' }), true);
+test('o ADM não pode ser rebaixado nem desativado: só transferindo o papel', () => {
+  assert.equal(recusaDaMudanca(ADM, ID_A, { acao: 'alterarPapel', papel: 'usuario' }).status, 409);
+  assert.equal(recusaDaMudanca(ADM, ID_A, { acao: 'desativar' }).status, 409);
+  assert.equal(recusaDaMudanca(ADM, ID_A, { acao: 'alterarPapel', papel: 'admin' }).status, 409);
 });
 
-test('com outro admin ativo, rebaixar ou desativar a si mesmo é permitido', () => {
-  const doisAdmins = [{ id: ID_A, papel: 'admin', ativo: true }, { id: ID_B, papel: 'admin', ativo: true }];
-  assert.equal(deixariaSemAdmin(doisAdmins, ID_A, { papel: 'usuario' }), false);
-  assert.equal(deixariaSemAdmin(doisAdmins, ID_A, { ativo: false }), false);
+test('transferir o ADM só para um membro ativo', () => {
+  assert.equal(recusaDaMudanca(ATIVO, ID_A, { acao: 'alterarPapel', papel: 'admin' }), null);
+  assert.equal(recusaDaMudanca(INATIVO, ID_A, { acao: 'alterarPapel', papel: 'admin' }).status, 409);
 });
 
-test('promover ou reativar nunca deixa sem admin', () => {
-  assert.equal(deixariaSemAdmin(perfis, ID_B, { papel: 'admin' }), false);
-  assert.equal(deixariaSemAdmin(perfis, ID_C, { ativo: true }), false);
+test('usuário comum pode ser desativado, reativado e mantido como usuário', () => {
+  assert.equal(recusaDaMudanca(ATIVO, ID_A, { acao: 'desativar' }), null);
+  assert.equal(recusaDaMudanca(INATIVO, ID_A, { acao: 'reativar' }), null);
+  assert.equal(recusaDaMudanca(ATIVO, ID_A, { acao: 'alterarPapel', papel: 'usuario' }), null);
 });
 
 test('lerToken aceita só "Bearer <token>"', () => {
@@ -62,9 +60,11 @@ test('validarPedido: ações conhecidas e campos obrigatórios', () => {
   assert.deepEqual(validarPedido({ acao: 'alterarPapel', id: ID_B, papel: 'admin' }).pedido, { acao: 'alterarPapel', id: ID_B, papel: 'admin' });
 });
 
-test('validarPedido: convite normaliza e-mail, nome e papel', () => {
+test('validarPedido: convite normaliza e-mail e nome, sempre como usuário', () => {
   assert.deepEqual(validarPedido({ acao: 'convidar', email: ' A@B.com ', nome: ' Ana ' }).pedido,
-    { acao: 'convidar', email: 'a@b.com', nome: 'Ana', papel: 'usuario' });
+    { acao: 'convidar', email: 'a@b.com', nome: 'Ana' });
+  assert.equal(validarPedido({ acao: 'convidar', email: 'a@b.com', papel: 'usuario' }).ok, true);
+  assert.equal(validarPedido({ acao: 'convidar', email: 'a@b.com', papel: 'admin' }).ok, false);
   assert.equal(validarPedido({ acao: 'convidar', email: 'a@b.com', nome: 'x'.repeat(101) }).ok, false);
   assert.equal(validarPedido({ acao: 'convidar', email: 'a@b.com', nome: 'linha\nquebrada' }).ok, false);
   assert.equal(validarPedido({ acao: 'convidar', email: 'a@b.com', papel: 'root' }).ok, false);

@@ -3,12 +3,12 @@ import { tokenAtual, sair } from './sessao.js';
 import { aoTrocarDeTela, telaAtual } from './navegacao.js';
 
 const ENDERECO = '/api/usuarios';
-const ROTULO_PAPEL = { usuario: 'Usuário', admin: 'Admin' };
+const ROTULO_PAPEL = { usuario: 'Usuário', admin: 'ADM' };
 const FORMATO_DATA_HORA = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
 
 const el = elementos([
   'usuariosCorpo', 'usuariosEstado', 'usuariosAtualizar',
-  'conviteForm', 'conviteNome', 'conviteEmail', 'convitePapel', 'conviteEnviar', 'conviteEstado',
+  'conviteForm', 'conviteNome', 'conviteEmail', 'conviteEnviar', 'conviteEstado', 'usuariosEmpresa',
 ]);
 
 let idDoAdmin = null;
@@ -69,6 +69,9 @@ function celulaPapel(usuario) {
     opcao.selected = valor === usuario.papel;
     seletor.append(opcao);
   });
+  // o ADM só deixa de ser ADM promovendo outro membro (transferência)
+  seletor.dataset.travado = String(usuario.papel === 'admin' || !usuario.ativo);
+  seletor.disabled = seletor.dataset.travado === 'true';
   seletor.addEventListener('change', () => alterarPapel(usuario, seletor));
   return seletor;
 }
@@ -109,7 +112,7 @@ function pintarEstado(mensagem) {
 function travar(travado) {
   ocupado = travado;
   el.usuariosCorpo.querySelectorAll('button, select').forEach((controle) => {
-    controle.disabled = travado;
+    controle.disabled = travado || controle.dataset.travado === 'true';
   });
   el.usuariosAtualizar.disabled = travado;
 }
@@ -142,14 +145,23 @@ async function executarEAtualizar(pedido, acao) {
   await carregar();
 }
 
-function alterarPapel(usuario, seletor) {
+/* A empresa tem um ADM só: promover alguém é transferir, e quem transferiu perde a tela de Usuários. */
+async function alterarPapel(usuario, seletor) {
   const papel = seletor.value;
-  const confirmou = window.confirm(`Mudar o papel de ${usuario.email} para ${ROTULO_PAPEL[papel]}?`);
-  if (!confirmou) {
+  const confirmou = papel === 'admin' && window.confirm(
+    `Transferir o papel de ADM para ${usuario.email}? Você passa a ser usuário e deixa de gerenciar a empresa.`);
+  if (!confirmou || ocupado) {
     seletor.value = usuario.papel;
     return;
   }
-  executarEAtualizar({ acao: 'alterarPapel', id: usuario.id, papel }, 'mudar o papel');
+  travar(true);
+  try {
+    await chamar({ acao: 'alterarPapel', id: usuario.id, papel });
+    location.reload();
+  } catch (erro) {
+    window.alert(`Não foi possível transferir o papel: ${erro.message}.`);
+    await carregar();
+  }
 }
 
 function alternarAtivo(usuario) {
@@ -182,7 +194,6 @@ async function convidar(evento) {
       acao: 'convidar',
       nome: el.conviteNome.value.trim(),
       email: el.conviteEmail.value.trim(),
-      papel: el.convitePapel.value,
     });
     pintarConvite(`Convite enviado para ${el.conviteEmail.value.trim()}.`, 'ok');
     el.conviteForm.reset();
@@ -195,11 +206,12 @@ async function convidar(evento) {
 }
 
 /**
- * @description Liga a tela de Usuários (só admin); a lista carrega na primeira vez que a tela abre
- * @param {{id: string}} perfil - o admin logado
+ * @description Liga a tela de Usuários (só o ADM da empresa); a lista carrega na primeira vez que a tela abre
+ * @param {{id: string, empresas: {nome: string}}} perfil - o ADM logado
  */
 export function iniciarUsuarios(perfil) {
   idDoAdmin = perfil.id;
+  el.usuariosEmpresa.textContent = perfil.empresas.nome;
   el.usuariosAtualizar.addEventListener('click', carregar);
   el.conviteForm.addEventListener('submit', convidar);
 

@@ -28,7 +28,7 @@
         <img class="marca-icone" src="/img/timever-icone.svg" alt="" width="34" height="34">
         <span class="marca-texto">
           <span class="marca-nome">TimEver</span>
-          <span class="marca-sub">Ponto · Banco · Foco</span>
+          <span class="marca-sub">Seu tempo, sob controle</span>
         </span>
       </a>
 
@@ -406,7 +406,7 @@
       <header class="cabecalho">
         <div class="cabecalho-texto">
           <h1 id="usuariosTitulo">Usuários</h1>
-          <p>Convide, mude o papel, desative ou reative. Cada usuário vê só o próprio ponto, inclusive você.</p>
+          <p>Membros da empresa <b id="usuariosEmpresa"></b>. Convide, desative, reative ou transfira o papel de ADM (a empresa tem um ADM só).</p>
         </div>
         <div class="cabecalho-acoes">
           <button class="botao botao-secundario" id="usuariosAtualizar" type="button">Atualizar lista</button>
@@ -434,12 +434,6 @@
           <form class="convite-campos" id="conviteForm" novalidate>
             <label>Nome<input id="conviteNome" maxlength="100" autocomplete="off"></label>
             <label>E-mail<input id="conviteEmail" type="email" maxlength="254" autocomplete="off" required></label>
-            <label>Papel
-              <select id="convitePapel">
-                <option value="usuario">Usuário</option>
-                <option value="admin">Admin</option>
-              </select>
-            </label>
             <button class="botao botao-primario" id="conviteEnviar" type="submit">Enviar convite</button>
             <span class="texto-mudo pequeno" id="conviteEstado" role="status"></span>
           </form>

@@ -1,14 +1,14 @@
 import { createClient } from '@supabase/supabase-js';
 import {
-  lerToken, validarPedido, deixariaSemAdmin, montarListaUsuarios,
+  lerToken, validarPedido, recusaDaMudanca, montarListaUsuarios,
 } from '../../src/regras-usuarios.js';
 
-/* Única peça com a service role: ela ignora a RLS, então tudo aqui passa antes pela
-   checagem de que quem chama é um admin ativo. */
+/* Única peça com a service role: ela ignora a RLS, então tudo aqui passa antes pela checagem de
+   que quem chama é o ADM ativo de uma empresa ativa, e só toca perfis dessa empresa. */
 const TAMANHO_MAXIMO_CORPO = 4096;
 const USUARIOS_POR_PAGINA = 1000;
 const BANIMENTO_SEM_PRAZO = '876000h';
-const MENSAGEM_ULTIMO_ADMIN = 'o sistema precisa de pelo menos um admin ativo';
+const MENSAGEM_SEM_ADM = 'a empresa precisa de um ADM ativo';
 
 export const config = { path: '/api/usuarios' };
 
@@ -53,8 +53,8 @@ async function lerCorpo(req) {
 }
 
 /**
- * @description Confere o JWT no Supabase Auth e exige que o dono seja admin ativo
- * @returns {Promise<string>} id do admin
+ * @description Confere o JWT no Supabase Auth e exige que o dono seja o ADM ativo de uma empresa ativa
+ * @returns {Promise<{id: string, empresaId: string}>}
  */
 async function exigirAdmin(supabase, req) {
   const token = lerToken(req.headers.get('authorization'));
@@ -68,18 +68,18 @@ async function exigirAdmin(supabase, req) {
   }
 
   const { data: perfil, error: erroPerfil } = await supabase
-    .from('perfis').select('papel, ativo').eq('id', data.user.id).maybeSingle();
+    .from('perfis').select('papel, ativo, empresa_id, empresas(ativa)').eq('id', data.user.id).maybeSingle();
   if (erroPerfil) {
     throw falhou(erroPerfil, 'ler o perfil de quem chamou');
   }
-  if (!perfil || perfil.papel !== 'admin' || !perfil.ativo) {
-    throw new ErroHttp(403, 'só um admin ativo gerencia usuários');
+  if (!perfil || perfil.papel !== 'admin' || !perfil.ativo || !perfil.empresa_id || perfil.empresas?.ativa !== true) {
+    throw new ErroHttp(403, 'só o ADM ativo da empresa gerencia usuários');
   }
-  return data.user.id;
+  return { id: data.user.id, empresaId: perfil.empresa_id };
 }
 
-async function todosOsPerfis(supabase) {
-  const { data, error } = await supabase.from('perfis').select('id, nome, email, papel, ativo');
+async function perfisDaEmpresa(supabase, empresaId) {
+  const { data, error } = await supabase.from('perfis').select('id, nome, email, papel, ativo').eq('empresa_id', empresaId);
   if (error) {
     throw falhou(error, 'ler os perfis');
   }
@@ -100,24 +100,31 @@ async function todosOsUsuariosAuth(supabase) {
   }
 }
 
-async function exigirQueSobreAdmin(supabase, id, mudanca) {
-  const perfis = await todosOsPerfis(supabase);
-  if (!perfis.some((perfil) => perfil.id === id)) {
-    throw new ErroHttp(404, 'usuário não encontrado');
+/**
+ * @description Perfil-alvo da mesma empresa do ADM, já conferido contra as regras do pedido
+ * @returns {Promise<object>}
+ */
+async function exigirAlvo(supabase, adm, pedido) {
+  const alvo = (await perfisDaEmpresa(supabase, adm.empresaId)).find((perfil) => perfil.id === pedido.id);
+  const recusa = recusaDaMudanca(alvo, adm.id, pedido);
+  if (recusa) {
+    throw new ErroHttp(recusa.status, recusa.erro);
   }
-  if (deixariaSemAdmin(perfis, id, mudanca)) {
-    throw new ErroHttp(409, MENSAGEM_ULTIMO_ADMIN);
-  }
+  return alvo;
 }
 
-/* O trigger manter_um_admin é a última barreira (corrida entre dois admins); a mensagem dele vira 409. */
-async function atualizarPerfil(supabase, id, campos, acao) {
-  const { error } = await supabase.from('perfis').update(campos).eq('id', id);
+function erroDoBanco(error, acao) {
+  if (String(error.message).includes(MENSAGEM_SEM_ADM)) {
+    return new ErroHttp(409, MENSAGEM_SEM_ADM);
+  }
+  return falhou(error, acao);
+}
+
+/* O trigger manter_adm_da_empresa é a última barreira (corrida entre dois pedidos); a mensagem dele vira 409. */
+async function atualizarPerfil(supabase, adm, id, campos, acao) {
+  const { error } = await supabase.from('perfis').update(campos).eq('id', id).eq('empresa_id', adm.empresaId);
   if (error) {
-    if (String(error.message).includes(MENSAGEM_ULTIMO_ADMIN)) {
-      throw new ErroHttp(409, MENSAGEM_ULTIMO_ADMIN);
-    }
-    throw falhou(error, acao);
+    throw erroDoBanco(error, acao);
   }
 }
 
@@ -126,12 +133,22 @@ function enderecoDoSite(req) {
 }
 
 const ACOES = {
-  async listar(supabase) {
-    const [usuarios, perfis] = await Promise.all([todosOsUsuariosAuth(supabase), todosOsPerfis(supabase)]);
+  async listar(supabase, adm) {
+    const [usuarios, perfis] = await Promise.all([todosOsUsuariosAuth(supabase), perfisDaEmpresa(supabase, adm.empresaId)]);
     return { usuarios: montarListaUsuarios(usuarios, perfis) };
   },
 
-  async convidar(supabase, { email, nome, papel }, req) {
+  /* O perfil nasce sem empresa (trigger do Auth) e entra na do ADM aqui; se isso falhar, o convite é desfeito. */
+  async convidar(supabase, adm, { email, nome }, req) {
+    // e-mail com perfil (mesmo convite pendente, de qualquer empresa) não é reconvidado: o Auth reaproveitaria a conta
+    const { data: existentes, error: erroBusca } = await supabase.from('perfis').select('id').eq('email', email).limit(1);
+    if (erroBusca) {
+      throw falhou(erroBusca, 'conferir se o e-mail já existe');
+    }
+    if (existentes.length) {
+      throw new ErroHttp(409, 'já existe um usuário com esse e-mail');
+    }
+
     const { data, error } = await supabase.auth.admin.inviteUserByEmail(email, {
       data: { nome },
       redirectTo: `${enderecoDoSite(req)}/definir-senha.html`,
@@ -142,41 +159,56 @@ const ACOES = {
       }
       throw falhou(error, 'enviar o convite');
     }
-    if (papel === 'admin') {
-      await atualizarPerfil(supabase, data.user.id, { papel }, 'definir o papel do convidado');
+    const { data: colocados, error: erroEmpresa } = await supabase.from('perfis')
+      .update({ empresa_id: adm.empresaId }).eq('id', data.user.id).is('empresa_id', null).select('id');
+    if (erroEmpresa || colocados?.length !== 1) {
+      // 0 linhas = o perfil já tem empresa (convite simultâneo de outro ADM): não é conta deste pedido, não apaga
+      if (erroEmpresa) {
+        await supabase.auth.admin.deleteUser(data.user.id).catch(() => {});
+      }
+      throw falhou(erroEmpresa ?? new Error('perfil do convidado ausente ou já com empresa'),
+        'colocar o convidado na empresa (convite desfeito)');
     }
     return { id: data.user.id };
   },
 
-  async alterarPapel(supabase, { id, papel }) {
-    await exigirQueSobreAdmin(supabase, id, { papel });
-    await atualizarPerfil(supabase, id, { papel }, 'alterar o papel');
-    return { id, papel };
+  /* Virar ADM é transferência: quem pediu passa a usuário na mesma transação. */
+  async alterarPapel(supabase, adm, pedido) {
+    const alvo = await exigirAlvo(supabase, adm, pedido);
+    if (pedido.papel === 'admin') {
+      const { error } = await supabase.rpc('transferir_adm', { p_novo: alvo.id });
+      if (error) {
+        throw erroDoBanco(error, 'transferir o papel de ADM');
+      }
+    }
+    return { id: alvo.id, papel: pedido.papel };
   },
 
   /* Primeiro o perfil (a RLS corta os dados na hora), depois o ban (impede login e refresh do token). */
-  async desativar(supabase, { id }) {
-    await exigirQueSobreAdmin(supabase, id, { ativo: false });
-    await atualizarPerfil(supabase, id, { ativo: false }, 'desativar o perfil');
-    const { error } = await supabase.auth.admin.updateUserById(id, { ban_duration: BANIMENTO_SEM_PRAZO });
+  async desativar(supabase, adm, pedido) {
+    const alvo = await exigirAlvo(supabase, adm, pedido);
+    await atualizarPerfil(supabase, adm, alvo.id, { ativo: false }, 'desativar o perfil');
+    const { error } = await supabase.auth.admin.updateUserById(alvo.id, { ban_duration: BANIMENTO_SEM_PRAZO });
     if (error) {
       throw falhou(error, 'bloquear o login (o perfil já foi desativado)');
     }
-    return { id, ativo: false };
+    return { id: alvo.id, ativo: false };
   },
 
-  async reativar(supabase, { id }) {
-    const { error } = await supabase.auth.admin.updateUserById(id, { ban_duration: 'none' });
+  async reativar(supabase, adm, pedido) {
+    const alvo = await exigirAlvo(supabase, adm, pedido);
+    const { error } = await supabase.auth.admin.updateUserById(alvo.id, { ban_duration: 'none' });
     if (error) {
       throw falhou(error, 'desbloquear o login');
     }
-    await atualizarPerfil(supabase, id, { ativo: true }, 'reativar o perfil');
-    return { id, ativo: true };
+    await atualizarPerfil(supabase, adm, alvo.id, { ativo: true }, 'reativar o perfil');
+    return { id: alvo.id, ativo: true };
   },
 };
 
 /**
- * @description POST /api/usuarios { acao, ... }: listar, convidar, alterarPapel, desativar, reativar; só admin ativo
+ * @description POST /api/usuarios { acao, ... }: listar, convidar, alterarPapel, desativar, reativar; só o ADM
+ *   ativo da empresa, e só sobre os membros dela
  * @param {Request} req
  * @returns {Promise<Response>}
  */
@@ -187,7 +219,7 @@ export default async function usuarios(req) {
     }
 
     const supabase = clienteAdmin();
-    await exigirAdmin(supabase, req);
+    const adm = await exigirAdmin(supabase, req);
 
     const validacao = validarPedido(await lerCorpo(req));
     if (!validacao.ok) {
@@ -195,7 +227,7 @@ export default async function usuarios(req) {
     }
 
     const { pedido } = validacao;
-    return responder(200, await ACOES[pedido.acao](supabase, pedido, req));
+    return responder(200, await ACOES[pedido.acao](supabase, adm, pedido, req));
   } catch (erro) {
     if (erro instanceof ErroHttp) {
       return responder(erro.status, { erro: erro.message });

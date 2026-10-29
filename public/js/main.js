@@ -22,11 +22,11 @@ function desligarBotoes() {
   });
 }
 
-/* Perfil que não volta (null) é usuário sem perfil ou desativado: a RLS já corta os dados, aqui só se sai. */
+/* Sem perfil, desativado ou sem empresa ativa: a RLS já corta os dados, aqui só se sai. */
 async function perfilOuSair() {
   try {
     const perfil = await carregarPerfil();
-    if (!perfil || !perfil.ativo) {
+    if (!perfil || !perfil.ativo || !perfil.empresas) {
       await sair('inativo');
       return null;
     }
