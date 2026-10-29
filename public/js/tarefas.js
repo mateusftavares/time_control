@@ -5,7 +5,6 @@ import {
 import * as store from './tarefas-store.js';
 import { elementos, escapar } from './util.js';
 import { mostrarAviso, avisoDeFalha } from './aviso.js';
-import { irPara } from './navegacao.js';
 import { focarEm, tarefaEmFoco, aoMudarTarefaEmFoco } from './pomodoro.js';
 
 const el = elementos([
@@ -14,14 +13,14 @@ const el = elementos([
   'tarefaEditor', 'tarefaEditorRotulo', 'tarefaEditorTitulo', 'tarefaFechar', 'tarefaForm',
   'tTitulo', 'tCliente', 'tClientes', 'tStatus', 'tPrioridade', 'tPrazo', 'tRecorrencia', 'tAnotacoes',
   'tChecklist', 'tChecklistProgresso', 'tNovoItem', 'tCommits', 'tNovoCommit', 'tFoco', 'tFocar',
-  'tarefaEstado', 'tarefaSalvar', 'tarefaApagar',
+  'tarefaEstado', 'tarefaSalvar', 'tarefaApagar', 'tarefaStatusMenu',
 ]);
 
 const CHAVE_DA_VISAO = 'timever.tarefas.visao';
 const CONCLUIDAS_NO_KANBAN = 15;
 const AVISO_SALVO_MS = 1500;
 const MINUTO = 60 * 1000;
-const SVG_CHECK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 12.5l4 4 8-9"></path></svg>';
+const SVG_ABRIR_MENU = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>';
 const SVG_FOCAR = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10-6.5z"></path></svg>';
 const SVG_REMOVER = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12"></path><path d="M18 6L6 18"></path></svg>';
 
@@ -97,11 +96,12 @@ function metaDaTarefa(tarefa) {
   ].filter(Boolean).join('');
 }
 
-function botaoConcluir(tarefa) {
-  const concluida = tarefa.status === 'concluida';
-  const acao = concluida ? 'Reabrir' : 'Concluir';
-  return `<button class="tarefa-check" type="button" data-acao="concluir" aria-pressed="${concluida}" `
-    + `title="${acao}" aria-label="${acao}: ${escapar(tarefa.titulo)}">${SVG_CHECK}</button>`;
+/* O status só muda escolhendo no menu: um clique solto não conclui a tarefa por engano. */
+function botaoStatus(tarefa) {
+  return `<button class="etiqueta-status" type="button" data-acao="status" data-status="${escapar(tarefa.status)}" `
+    + `aria-haspopup="menu" aria-expanded="false" title="Mudar o status" `
+    + `aria-label="Status de ${escapar(tarefa.titulo)}: ${escapar(STATUS[tarefa.status])}. Mudar">`
+    + `${escapar(STATUS[tarefa.status])}${SVG_ABRIR_MENU}</button>`;
 }
 
 function botaoFocar(tarefa) {
@@ -119,11 +119,10 @@ function atributosDaTarefa(tarefa) {
 
 function htmlDaLinha(tarefa) {
   return `<div class="tarefa-linha" ${atributosDaTarefa(tarefa)}>`
-    + botaoConcluir(tarefa)
     + `<button class="tarefa-abrir" type="button" data-acao="abrir">`
     + `<span class="tarefa-titulo">${escapar(tarefa.titulo)}</span>`
     + `<span class="tarefa-meta">${metaDaTarefa(tarefa)}</span></button>`
-    + `<span class="etiqueta-status" data-status="${escapar(tarefa.status)}">${escapar(STATUS[tarefa.status])}</span>`
+    + botaoStatus(tarefa)
     + botaoFocar(tarefa)
     + '</div>';
 }
@@ -134,7 +133,7 @@ function htmlDoCartao(tarefa) {
     + `<div class="tarefa-abrir" role="button" tabindex="0" data-acao="abrir">`
     + `<span class="tarefa-titulo">${escapar(tarefa.titulo)}</span>`
     + `<span class="tarefa-meta">${metaDaTarefa(tarefa)}</span></div>`
-    + `<div class="tarefa-cartao-acoes">${botaoConcluir(tarefa)}${botaoFocar(tarefa)}</div>`
+    + `<div class="tarefa-cartao-acoes">${botaoStatus(tarefa)}${botaoFocar(tarefa)}</div>`
     + '</article>';
 }
 
@@ -214,6 +213,7 @@ function pintarVisao() {
 }
 
 function render() {
+  fecharMenuDeStatus();
   pintarResumo();
   pintarClientes();
   pintarVisao();
@@ -303,13 +303,17 @@ function preencherEditor() {
 function abrirEditor(tarefa) {
   editada = structuredClone(tarefa);
   preencherEditor();
-  el.tarefaEditor.hidden = false;
+  if (!el.tarefaEditor.open) {
+    el.tarefaEditor.showModal();
+  }
   el.tTitulo.focus();
 }
 
+/* Fechar pelo X, pelo Esc ou clicando fora: o evento "close" do dialog solta a tarefa editada. */
 function fecharEditor() {
-  editada = null;
-  el.tarefaEditor.hidden = true;
+  if (el.tarefaEditor.open) {
+    el.tarefaEditor.close();
+  }
 }
 
 function dadosDoEditor() {
@@ -402,16 +406,78 @@ function novoCommit() {
 
 /* ---------- ações nas linhas e cartões ---------- */
 
-async function alternarConclusao(id) {
-  const tarefa = store.obter(id);
-  if (!tarefa) {
+/* ---------- menu de status: um só, posicionado junto ao botão clicado ---------- */
+
+let menuAberto = null;
+
+function fecharMenuDeStatus({ devolverFoco = false } = {}) {
+  if (!menuAberto) {
     return;
   }
-  try {
-    await store.mudarStatus(id, tarefa.status === 'concluida' ? 'a_fazer' : 'concluida');
-  } catch (erro) {
-    mostrarAviso(avisoDeFalha('atualizar a tarefa', erro));
+  menuAberto.botao.setAttribute('aria-expanded', 'false');
+  if (devolverFoco && menuAberto.botao.isConnected) {
+    menuAberto.botao.focus();
   }
+  menuAberto = null;
+  el.tarefaStatusMenu.hidden = true;
+}
+
+function posicionarMenu(botao) {
+  const ancora = botao.getBoundingClientRect();
+  const menu = el.tarefaStatusMenu.getBoundingClientRect();
+  const cabeEmbaixo = ancora.bottom + 6 + menu.height <= window.innerHeight;
+  const topo = cabeEmbaixo ? ancora.bottom + 6 : Math.max(8, ancora.top - 6 - menu.height);
+  const esquerda = Math.min(Math.max(8, ancora.right - menu.width), window.innerWidth - menu.width - 8);
+  el.tarefaStatusMenu.style.top = `${topo}px`;
+  el.tarefaStatusMenu.style.left = `${esquerda}px`;
+}
+
+function abrirMenuDeStatus(botao, id) {
+  const reabrindoOMesmo = menuAberto?.botao === botao;
+  fecharMenuDeStatus();
+  const tarefa = store.obter(id);
+  if (reabrindoOMesmo || !tarefa) {
+    return;
+  }
+  el.tarefaStatusMenu.innerHTML = Object.entries(STATUS).map(([status, rotulo]) => `<button type="button" role="menuitemradio" `
+    + `data-status="${status}" aria-checked="${status === tarefa.status}">`
+    + `<span class="etiqueta-status" data-status="${status}">${escapar(rotulo)}</span></button>`).join('');
+  el.tarefaStatusMenu.hidden = false;
+  posicionarMenu(botao);
+  botao.setAttribute('aria-expanded', 'true');
+  menuAberto = { botao, id };
+  el.tarefaStatusMenu.querySelector('[aria-checked="true"]')?.focus({ preventScroll: true });
+}
+
+async function escolherStatus(evento) {
+  const opcao = evento.target.closest('[data-status][role="menuitemradio"]');
+  if (!opcao || !menuAberto) {
+    return;
+  }
+  const { id } = menuAberto;
+  fecharMenuDeStatus();
+  try {
+    await store.mudarStatus(id, opcao.dataset.status);
+  } catch (erro) {
+    mostrarAviso(avisoDeFalha('mudar o status da tarefa', erro));
+  }
+}
+
+function ligarMenuDeStatus() {
+  el.tarefaStatusMenu.addEventListener('click', escolherStatus);
+  document.addEventListener('pointerdown', (evento) => {
+    if (menuAberto && !el.tarefaStatusMenu.contains(evento.target) && evento.target !== menuAberto.botao
+      && !menuAberto.botao.contains(evento.target)) {
+      fecharMenuDeStatus();
+    }
+  });
+  document.addEventListener('keydown', (evento) => {
+    if (evento.key === 'Escape' && menuAberto) {
+      fecharMenuDeStatus({ devolverFoco: true });
+    }
+  });
+  window.addEventListener('resize', () => fecharMenuDeStatus());
+  document.addEventListener('scroll', () => fecharMenuDeStatus(), true);
 }
 
 function agirNaTarefa(evento) {
@@ -420,12 +486,11 @@ function agirNaTarefa(evento) {
   if (!id) {
     return;
   }
-  if (botao.dataset.acao === 'concluir') {
-    alternarConclusao(id);
+  if (botao.dataset.acao === 'status') {
+    abrirMenuDeStatus(botao, id);
   } else if (botao.dataset.acao === 'focar') {
     focarEm(id);
   } else {
-    irPara('tarefas');
     abrirEditor(store.obter(id));
   }
 }
@@ -513,6 +578,18 @@ function ligarFiltros() {
 function ligarEditor() {
   el.tarefaForm.addEventListener('submit', salvarEditor);
   el.tarefaFechar.addEventListener('click', fecharEditor);
+  el.tarefaEditor.addEventListener('close', () => {
+    editada = null;
+  });
+  // no fundo escurecido o alvo também é o dialog, como na borda interna dele: decide pela posição do clique
+  el.tarefaEditor.addEventListener('click', (evento) => {
+    const caixa = el.tarefaEditor.getBoundingClientRect();
+    const dentro = evento.clientX >= caixa.left && evento.clientX <= caixa.right
+      && evento.clientY >= caixa.top && evento.clientY <= caixa.bottom;
+    if (evento.target === el.tarefaEditor && !dentro) {
+      fecharEditor();
+    }
+  });
   el.tarefaApagar.addEventListener('click', apagarEditada);
   el.tNovoItem.addEventListener('keydown', adicionarItem);
   el.tChecklist.addEventListener('change', mexerNoChecklist);
@@ -545,6 +622,7 @@ export async function iniciarTarefas() {
   ligarFiltros();
   ligarEditor();
   ligarKanban();
+  ligarMenuDeStatus();
 
   store.assinar(render);
   store.assinarFoco((id) => editada?.id === id && pintarFocoDoEditor());
