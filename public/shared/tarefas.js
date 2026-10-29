@@ -35,6 +35,7 @@ export const LIMITES = {
 
 const PESO_PRIORIDADE = { urgente: 0, alta: 1, normal: 2, baixa: 3 };
 const HASH_DE_COMMIT = /^[0-9a-f]{7,40}$/i;
+const FORMATO_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const NOME_DE_BRANCH = /^[A-Za-z0-9._\/-]+$/;
 const CONTROLE = /[\u0000-\u001F\u007F]/;
 
@@ -49,6 +50,9 @@ export function tarefaVazia() {
     id: null,
     titulo: '',
     cliente: '',
+    clienteId: null,
+    responsavelId: null,
+    criadorId: null,
     status: 'a_fazer',
     prioridade: 'normal',
     prazo: null,
@@ -116,6 +120,14 @@ export function normalizarTarefa(entrada) {
   if (cliente.length > LIMITES.cliente || CONTROLE.test(cliente)) {
     erros.push(`o cliente/projeto deve ter até ${LIMITES.cliente} caracteres`);
   }
+  const responsavelId = origem.responsavelId || null;
+  if (responsavelId !== null && !FORMATO_UUID.test(responsavelId)) {
+    erros.push('responsável inválido');
+  }
+  const clienteId = origem.clienteId || null;
+  if (clienteId !== null && !FORMATO_UUID.test(clienteId)) {
+    erros.push('cliente inválido');
+  }
   if (!(origem.status in STATUS)) {
     erros.push('status inválido');
   }
@@ -148,13 +160,13 @@ export function normalizarTarefa(entrada) {
   }
 
   const tarefa = {
-    ...origem, titulo, cliente, prazo, recorrencia, anotacoes, checklist, commits,
+    ...origem, titulo, cliente, clienteId, responsavelId, prazo, recorrencia, anotacoes, checklist, commits,
   };
   return { ok: erros.length === 0, tarefa, erros };
 }
 
-export const COLUNAS_TAREFAS = 'id, titulo, cliente, status, prioridade, prazo, recorrencia, anotacoes, '
-  + 'checklist, commits, foco_ms, pomodoros, concluida_em, criado_em';
+export const COLUNAS_TAREFAS = 'id, titulo, cliente, cliente_id, responsavel_id, user_id, status, prioridade, prazo, '
+  + 'recorrencia, anotacoes, checklist, commits, foco_ms, pomodoros, concluida_em, criado_em';
 
 /**
  * @description Linha da tabela `tarefas` para a tarefa do app
@@ -166,6 +178,9 @@ export function paraTarefa(linha) {
     id: linha.id,
     titulo: linha.titulo,
     cliente: linha.cliente ?? '',
+    clienteId: linha.cliente_id ?? null,
+    responsavelId: linha.responsavel_id ?? null,
+    criadorId: linha.user_id ?? null,
     status: linha.status,
     prioridade: linha.prioridade,
     prazo: linha.prazo,
@@ -181,7 +196,7 @@ export function paraTarefa(linha) {
 }
 
 /**
- * @description Tarefa do app (já normalizada) para a linha gravada; foco e datas são do servidor
+ * @description Tarefa do app (já normalizada) para a linha gravada; foco, datas, criador e empresa são do servidor
  * @param {object} tarefa
  * @returns {object}
  */
@@ -189,6 +204,8 @@ export function linhaDeTarefa(tarefa) {
   return {
     titulo: tarefa.titulo,
     cliente: tarefa.cliente,
+    cliente_id: tarefa.clienteId,
+    responsavel_id: tarefa.responsavelId,
     status: tarefa.status,
     prioridade: tarefa.prioridade,
     prazo: tarefa.prazo,
@@ -251,6 +268,8 @@ export function proximaOcorrencia(tarefa, hojeIso) {
     ...tarefaVazia(),
     titulo: tarefa.titulo,
     cliente: tarefa.cliente,
+    clienteId: tarefa.clienteId,
+    responsavelId: tarefa.responsavelId,
     prioridade: tarefa.prioridade,
     recorrencia: tarefa.recorrencia,
     anotacoes: tarefa.anotacoes,

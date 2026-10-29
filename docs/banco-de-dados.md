@@ -16,6 +16,7 @@ O schema inteiro está em `supabase/migrations/`, aplicado em ordem pelo `supaba
 | `20261030120000_empresas.sql` | Tabela `empresas`, `perfis.empresa_id` e `perfis.super_admin`, um ADM por empresa (índice `perfis_um_adm_por_empresa` + trigger `manter_adm_da_empresa`, que substitui `manter_um_admin`), funções `minha_empresa`, `eh_super_admin` e `transferir_adm`, e `perfil_ativo`/`eh_admin` passando a exigir empresa ativa. Coloca os usuários existentes na empresa "TimEver"; o admin atual vira o ADM dela e o super ADM. |
 | `20261030150000_jornadas_da_empresa.sql` | Jornadas da empresa: `modelos_jornada`, `versoes_jornada` e `atribuicoes_jornada`, função `da_minha_empresa`, trigger `conferir_atribuicao_jornada` e RLS (todos leem, só o ADM grava). As vigências de cada usuário viram um modelo "Jornada de <nome>" atribuído desde a primeira. A tabela antiga `jornadas` fica só leitura até o front novo entrar no ar. |
 | `20261030180000_adm_le_ponto_da_empresa.sql` | Policy de leitura em `dias` para o ADM da empresa (`eh_admin()` e `da_minha_empresa(user_id)`). Gravar e apagar continuam só do dono. |
+| `20261031120000_tarefas_da_empresa.sql` | Tabela `clientes` (por empresa), `tarefas.empresa_id`, `responsavel_id` e `cliente_id` (as tarefas existentes vão para a empresa do dono, com ele de responsável, e os textos de cliente viram cadastros), RLS das tarefas por empresa (apagar: quem criou, o responsável ou o ADM), `carimbar_tarefa` fixando criador e empresa, função `colegas()` e `empresas.status_tarefas`/`usa_commits` (o ADM altera; a TimEver mantém os 6 status e os commits). |
 
 ## Tabelas
 
@@ -45,9 +46,11 @@ O trigger `ao_criar_usuario` (em `auth.users`) cria o perfil. O nome vem do meta
 | `id` | uuid, PK | |
 | `nome` | text | 1 a 100 caracteres, sem caracteres de controle |
 | `ativa` | boolean | `false` corta o acesso de todos os membros na hora |
+| `status_tarefas` | text[] | status em uso nas tarefas; sempre inclui `a_fazer` e `concluida`. Empresa nova: os 4 gerais |
+| `usa_commits` | boolean | mostra o bloco de commits nas tarefas. Empresa nova: `false` |
 | `criado_em` | timestamptz | |
 
-Só a função do Netlify (service role) ou o SQL Editor criam e alteram empresas. O membro lê a própria; o super ADM lê todas.
+Só a função do Netlify (service role) ou o SQL Editor criam e alteram empresas; a exceção é o ADM, que altera `status_tarefas` e `usa_commits` da própria (privilégio por coluna mais policy). O membro lê a própria; o super ADM lê todas.
 
 ### `dias`: um registro por usuário e dia
 
@@ -67,14 +70,17 @@ Só a função do Netlify (service role) ou o SQL Editor criam e alteram empresa
 | `user_id`, `dia` | uuid, date | PK |
 | `estado` | jsonb | objeto de até 4 KB. Os campos (em inglês, porque é o formato já gravado) são `phase`, `running`, `paused`, `reason`, `remaining`, `endsAt`, `pausedAt`, `breaks`, `pomodoros`, `focusMs`, `pauseMs`, `sound` e `auto`, mais `tarefa` (uuid da tarefa em foco, ou `null`). O front sempre passa o estado por `sanitizarEstado` antes de usar. |
 
-### `tarefas`: demandas do trabalho de cada usuário
+### `tarefas`: demandas do trabalho da empresa
 
 | Coluna | Tipo | Regra |
 |---|---|---|
 | `id` | uuid, PK | gerado pelo banco |
-| `user_id` | uuid | padrão `auth.uid()` |
+| `user_id` | uuid | quem criou; padrão `auth.uid()`, não muda depois (trigger) |
+| `empresa_id` | uuid | padrão `minha_empresa()`, não muda depois (trigger) |
+| `responsavel_id` | uuid | membro da mesma empresa (RLS) ou `null`; padrão `auth.uid()`. Trocar: só quem criou, o responsável atual ou o ADM (trigger) |
+| `cliente_id` | uuid | cliente da mesma empresa (RLS) ou `null` |
 | `titulo` | text | 1 a 200 caracteres |
-| `cliente` | text | cliente ou projeto, até 80 caracteres |
+| `cliente` | text | nome do cliente, até 80 caracteres (gravado junto com `cliente_id`; a tela mostra o nome do cadastro) |
 | `status` | text | `a_fazer` (padrão), `em_andamento`, `commit_realizado`, `pendente_teste`, `aguardando` ou `concluida` |
 | `prioridade` | text | `urgente`, `alta`, `normal` (padrão) ou `baixa` |
 | `prazo` | date | opcional |
@@ -86,7 +92,22 @@ Só a função do Netlify (service role) ou o SQL Editor criam e alteram empresa
 | `concluida_em` | timestamptz | carimbado pelo trigger ao concluir; volta a `null` ao reabrir |
 | `criado_em`, `atualizado_em` | timestamptz | carimbados pelo trigger |
 
-`somar_foco(tarefa, ms, pomodoros)` soma no próprio `UPDATE` (duas abas não se sobrescrevem), limita cada chamada a 1 h e 1 pomodoro e roda como o usuário (`security invoker`), então a RLS vale.
+### `clientes`: cadastro de clientes da empresa
+
+| Coluna | Tipo | Regra |
+|---|---|---|
+| `id` | uuid, PK | |
+| `empresa_id` | uuid | padrão `minha_empresa()` |
+| `nome` | text | 1 a 80 caracteres, único na empresa sem diferenciar maiúsculas |
+| `arquivado` | boolean | arquivado some das sugestões, mas continua nas tarefas |
+
+Qualquer membro cria (ao digitar um cliente novo numa tarefa); só o ADM renomeia, arquiva e apaga. Apagar deixa as tarefas com `cliente_id` nulo.
+
+`colegas()`: `security definer`, devolve só `id` e `nome` dos membros ativos da empresa de quem chama, para escolher o responsável (sem e-mail nem papel).
+
+O cliente só tem update nas colunas de conteúdo (título, cliente, responsável, status, prioridade, prazo, repetição, anotações, checklist e commits): criador, empresa, foco e datas são do servidor.
+
+`somar_foco(tarefa, ms, pomodoros)` soma no próprio `UPDATE` (duas abas não se sobrescrevem) e limita cada chamada a 1 h e 1 pomodoro. É `security definer` (o cliente não tem update em `foco_ms`) e só soma em tarefa da empresa de quem chama.
 
 ### `modelos_jornada`, `versoes_jornada` e `atribuicoes_jornada`: jornadas da empresa
 
@@ -116,7 +137,9 @@ Substituída pelas tabelas acima. Fica só leitura enquanto o front antigo pode 
 | `perfis` | o próprio; o ADM lê os da empresa dele | cliente: só `nome`, `avatar_path`, `cor_destaque`, `superficie` e `fundo` do próprio perfil, e só se ativo. Papel, ativo, empresa e super ADM: só a função de usuários (service role) ou o SQL Editor. |
 | `empresas` | a própria; o super ADM lê todas | ninguém pelo cliente |
 | `dias` | as próprias; o ADM lê as dos membros da empresa | só as próprias, com perfil ativo numa empresa ativa |
-| `pomodoro`, `tarefas` | só as próprias linhas, com perfil ativo numa empresa ativa | idem |
+| `pomodoro` | só as próprias linhas, com perfil ativo numa empresa ativa | idem |
+| `tarefas` | todas as da empresa | criar e alterar: membros, com responsável e cliente da empresa; apagar: quem criou, o responsável ou o ADM |
+| `clientes` | todos os da empresa | criar: membros; alterar e apagar: o ADM |
 | `modelos_jornada`, `versoes_jornada` | todos da empresa | só o ADM da empresa |
 | `atribuicoes_jornada` | as próprias; o ADM lê as da empresa | só o ADM, e só para membros da empresa dele |
 | `jornadas` (antiga) | só as próprias linhas | ninguém (só leitura) |

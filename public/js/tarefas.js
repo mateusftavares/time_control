@@ -8,11 +8,12 @@ import { mostrarAviso, avisoDeFalha } from './aviso.js';
 import { focarEm, tarefaEmFoco, aoMudarTarefaEmFoco } from './pomodoro.js';
 
 const el = elementos([
-  'tarefasSub', 'tarefasVisao', 'tarefaRapida', 'tarefaRapidaTitulo', 'tarefasFiltro', 'tarefasCliente', 'tarefasBusca',
+  'tarefasSub', 'tarefasVisao', 'tarefaRapida', 'tarefaRapidaTitulo', 'tarefasFiltro', 'tarefasResponsavel', 'tarefasCliente',
+  'tarefasBusca',
   'tarefasLista', 'tarefasLinhas', 'tarefasKanban', 'hojeTarefas',
   'tarefaEditor', 'tarefaEditorRotulo', 'tarefaEditorTitulo', 'tarefaFechar', 'tarefaForm',
-  'tTitulo', 'tCliente', 'tClientes', 'tStatus', 'tPrioridade', 'tPrazo', 'tRecorrencia', 'tAnotacoes',
-  'tChecklist', 'tChecklistProgresso', 'tNovoItem', 'tCommits', 'tNovoCommit', 'tFoco', 'tFocar',
+  'tTitulo', 'tCliente', 'tClientes', 'tResponsavel', 'tStatus', 'tPrioridade', 'tPrazo', 'tRecorrencia', 'tAnotacoes',
+  'tChecklist', 'tChecklistProgresso', 'tNovoItem', 'tBlocoCommits', 'tCommits', 'tNovoCommit', 'tFoco', 'tFocar',
   'tarefaEstado', 'tarefaSalvar', 'tarefaApagar', 'tarefaStatusMenu',
 ]);
 
@@ -34,6 +35,7 @@ const FILTROS = {
 
 let visao = lerVisao();
 let filtro = 'abertas';
+let responsavel = 'eu';
 let cliente = '';
 let busca = '';
 let editada = null;
@@ -84,10 +86,20 @@ function rotuloDoPrazo(prazo) {
   return situacao === 'vencida' ? `venceu ${rotuloDia(prazo)}` : rotuloDia(prazo);
 }
 
+/* Só aparece quando a tarefa não é de quem está olhando: "→ Ana" ou "sem responsável". */
+function rotuloDoResponsavel(tarefa) {
+  if (tarefa.responsavelId === store.quemSou().id) {
+    return '';
+  }
+  const nome = tarefa.responsavelId ? store.nomeDoColega(tarefa.responsavelId) || 'ex-membro' : 'sem responsável';
+  return `<span class="tarefa-responsavel">→ ${escapar(nome)}</span>`;
+}
+
 function metaDaTarefa(tarefa) {
   const { feitos, total } = progressoDoChecklist(tarefa);
   const foco = resumoDoFoco(tarefa);
   return [
+    rotuloDoResponsavel(tarefa),
     tarefa.cliente && `<span class="chip">${escapar(tarefa.cliente)}</span>`,
     tarefa.prazo && `<span class="tarefa-prazo" data-situacao="${situacaoDoPrazo(tarefa.prazo, hoje())}">${escapar(rotuloDoPrazo(tarefa.prazo))}</span>`,
     total > 0 && `<span>${feitos}/${total} itens</span>`,
@@ -147,10 +159,37 @@ function bateComBusca(tarefa) {
   return campos.some((campo) => String(campo ?? '').toLowerCase().includes(busca));
 }
 
+/* Status que a tela oferece: os em uso na empresa, mais o atual da tarefa (se a empresa deixou de usá-lo). */
+function statusEmUso(atual = null) {
+  const emUso = store.configuracao().status;
+  return Object.fromEntries(Object.entries(STATUS).filter(([chave]) => emUso.includes(chave) || chave === atual));
+}
+
+function daPessoa(tarefa) {
+  if (responsavel === 'todas') {
+    return true;
+  }
+  if (responsavel === 'sem') {
+    return !tarefa.responsavelId;
+  }
+  return tarefa.responsavelId === (responsavel === 'eu' ? store.quemSou().id : responsavel);
+}
+
 function tarefasFiltradas(nomeDoFiltro = filtro) {
   return FILTROS[nomeDoFiltro](store.listar())
+    .filter(daPessoa)
     .filter((tarefa) => !cliente || tarefa.cliente === cliente)
     .filter(bateComBusca);
+}
+
+function pintarResponsaveis() {
+  const colegas = store.listarColegas().filter((colega) => colega.id !== store.quemSou().id);
+  if (!['eu', 'todas', 'sem'].includes(responsavel) && !colegas.some((colega) => colega.id === responsavel)) {
+    responsavel = 'eu';
+  }
+  el.tarefasResponsavel.replaceChildren(new Option('Minhas', 'eu'), new Option('Toda a empresa', 'todas'),
+    new Option('Sem responsável', 'sem'), ...colegas.map((colega) => new Option(colega.nome, colega.id)));
+  el.tarefasResponsavel.value = responsavel;
 }
 
 function pintarClientes() {
@@ -161,11 +200,11 @@ function pintarClientes() {
   }
   el.tarefasCliente.replaceChildren(new Option('Todos os clientes', ''), ...clientes.map((nome) => new Option(nome, nome)));
   el.tarefasCliente.value = cliente;
-  el.tClientes.replaceChildren(...clientes.map((nome) => new Option(nome)));
+  el.tClientes.replaceChildren(...store.clientesAtivos().map((cadastrado) => new Option(cadastrado.nome)));
 }
 
 function pintarResumo() {
-  const lista = store.listar();
+  const lista = store.minhas();
   const abertas = lista.filter((tarefa) => tarefa.status !== 'concluida');
   const vencidas = abertas.filter((tarefa) => situacaoDoPrazo(tarefa.prazo, hoje()) === 'vencida').length;
   const partes = [`${abertas.length} aberta${abertas.length === 1 ? '' : 's'}`];
@@ -173,7 +212,7 @@ function pintarResumo() {
     partes.push(`${vencidas} vencida${vencidas === 1 ? '' : 's'}`);
   }
   partes.push(`${tarefasDoDia(lista, hoje()).length} para hoje`);
-  el.tarefasSub.textContent = partes.join(' · ');
+  el.tarefasSub.textContent = `Com você: ${partes.join(' · ')}`;
 }
 
 function pintarLista() {
@@ -185,7 +224,11 @@ function pintarLista() {
 
 function pintarKanban() {
   const lista = tarefasFiltradas('todas');
-  el.tarefasKanban.innerHTML = Object.entries(STATUS).map(([status, rotulo]) => {
+  const emUso = store.configuracao().status;
+  const colunas = Object.entries(STATUS)
+    .filter(([status]) => emUso.includes(status) || lista.some((tarefa) => tarefa.status === status));
+  el.tarefasKanban.style.setProperty('--colunas', String(colunas.length));
+  el.tarefasKanban.innerHTML = colunas.map(([status, rotulo]) => {
     let daColuna = lista.filter((tarefa) => tarefa.status === status);
     if (status === 'concluida') {
       daColuna = FILTROS.concluidas(daColuna).slice(0, CONCLUIDAS_NO_KANBAN);
@@ -198,7 +241,7 @@ function pintarKanban() {
 }
 
 function pintarHoje() {
-  const lista = tarefasDoDia(store.listar(), hoje());
+  const lista = tarefasDoDia(store.minhas(), hoje());
   el.hojeTarefas.innerHTML = lista.length
     ? lista.map(htmlDaLinha).join('')
     : '<p class="texto-mudo pequeno tarefas-vazio">Nada vencendo hoje nem em andamento.</p>';
@@ -216,6 +259,7 @@ function pintarVisao() {
 function render() {
   fecharMenuDeStatus();
   pintarResumo();
+  pintarResponsaveis();
   pintarClientes();
   pintarVisao();
   if (visao === 'lista') {
@@ -287,18 +331,40 @@ function pintarFocoDoEditor() {
   el.tFocar.textContent = editada.id && editada.id === tarefaEmFoco() ? 'Em foco agora' : 'Focar nesta tarefa';
 }
 
+/* Apagar e trocar o responsável: quem criou, o responsável ou o ADM (o servidor confere de novo). */
+function temControle(tarefa) {
+  const { id, ehAdm } = store.quemSou();
+  return ehAdm || tarefa.criadorId === id || tarefa.responsavelId === id;
+}
+
+const podeApagar = (tarefa) => Boolean(tarefa.id) && temControle(tarefa);
+
+function preencherResponsavel() {
+  const colegas = store.listarColegas();
+  const foraDaLista = editada.responsavelId && !colegas.some((colega) => colega.id === editada.responsavelId)
+    ? [new Option('ex-membro', editada.responsavelId)] : [];
+  el.tResponsavel.replaceChildren(new Option('Sem responsável', ''), ...foraDaLista,
+    ...colegas.map((colega) => new Option(colega.id === store.quemSou().id ? `${colega.nome} (você)` : colega.nome, colega.id)));
+  el.tResponsavel.value = editada.responsavelId ?? '';
+  el.tResponsavel.disabled = Boolean(editada.id) && !temControle(editada);
+  el.tResponsavel.title = el.tResponsavel.disabled ? 'Só quem criou, o responsável ou o ADM troca o responsável' : '';
+}
+
 function preencherEditor() {
   el.tarefaEditorRotulo.textContent = editada.id ? 'Editar tarefa' : 'Nova tarefa';
   el.tarefaEditorTitulo.textContent = editada.titulo || 'Nova tarefa';
   el.tTitulo.value = editada.titulo;
   el.tCliente.value = editada.cliente;
+  preencherResponsavel();
+  opcoes(el.tStatus, statusEmUso(editada.status));
   el.tStatus.value = editada.status;
+  el.tBlocoCommits.hidden = !store.configuracao().usaCommits && editada.commits.length === 0;
   el.tPrioridade.value = editada.prioridade;
   el.tPrazo.value = editada.prazo ?? '';
   el.tRecorrencia.value = editada.recorrencia ?? '';
   el.tAnotacoes.value = editada.anotacoes;
   el.tNovoItem.value = '';
-  el.tarefaApagar.hidden = !editada.id;
+  el.tarefaApagar.hidden = !podeApagar(editada);
   mostrarEstado('');
   pintarChecklist();
   pintarCommits();
@@ -338,6 +404,7 @@ function dadosDoEditor() {
     ...editada,
     titulo: el.tTitulo.value,
     cliente: el.tCliente.value,
+    responsavelId: el.tResponsavel.value || null,
     status: el.tStatus.value,
     prioridade: el.tPrioridade.value,
     prazo: el.tPrazo.value || null,
@@ -459,7 +526,7 @@ function abrirMenuDeStatus(botao, id) {
   if (reabrindoOMesmo || !tarefa) {
     return;
   }
-  el.tarefaStatusMenu.innerHTML = Object.entries(STATUS).map(([status, rotulo]) => `<button type="button" role="menuitemradio" `
+  el.tarefaStatusMenu.innerHTML = Object.entries(statusEmUso(tarefa.status)).map(([status, rotulo]) => `<button type="button" role="menuitemradio" `
     + `data-status="${status}" aria-checked="${status === tarefa.status}">`
     + `<span class="etiqueta-status" data-status="${status}">${escapar(rotulo)}</span></button>`).join('');
   el.tarefaStatusMenu.hidden = false;
@@ -522,7 +589,7 @@ async function adicionarRapido(evento) {
     return;
   }
   try {
-    await store.salvar({ ...tarefaVazia(), titulo, prazo: filtro === 'hoje' ? hoje() : null });
+    await store.salvar({ ...tarefaVazia(), titulo, responsavelId: store.quemSou().id, prazo: filtro === 'hoje' ? hoje() : null });
     el.tarefaRapidaTitulo.value = '';
   } catch (erro) {
     mostrarAviso(avisoDeFalha('criar a tarefa', erro));
@@ -585,6 +652,10 @@ function ligarFiltros() {
       render();
     }
   });
+  el.tarefasResponsavel.addEventListener('change', () => {
+    responsavel = el.tarefasResponsavel.value;
+    render();
+  });
   el.tarefasCliente.addEventListener('change', () => {
     cliente = el.tarefasCliente.value;
     render();
@@ -639,10 +710,11 @@ function ligarEditor() {
 }
 
 /**
- * @description Liga a tela de Tarefas e o bloco do Hoje, e carrega as tarefas do servidor
+ * @description Liga a tela de Tarefas e o bloco do Hoje, e carrega as tarefas da empresa do servidor
+ * @param {{id: string, empresaId: string, ehAdm: boolean}} quem - o usuário logado
  */
-export async function iniciarTarefas() {
-  opcoes(el.tStatus, STATUS);
+export async function iniciarTarefas(quem) {
+  store.definirSessao(quem);
   opcoes(el.tPrioridade, PRIORIDADES);
   opcoes(el.tRecorrencia, RECORRENCIAS, 'Não se repete');
 

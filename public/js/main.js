@@ -104,7 +104,7 @@ async function iniciar() {
   iniciarPonto();
   iniciarMes();
   iniciarImportacao();
-  iniciarTarefas();
+  iniciarTarefas({ id: sessao.user.id, empresaId: perfil?.empresa_id ?? null, ehAdm: perfil?.papel === 'admin' });
   iniciarPomodoro();
 
   window.addEventListener('pagehide', () => {

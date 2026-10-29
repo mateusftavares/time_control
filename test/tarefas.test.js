@@ -112,4 +112,22 @@ test('paraTarefa e linhaDeTarefa: a linha gravada não leva foco nem datas do se
   assert.equal('foco_ms' in gravada, false);
   assert.equal('concluida_em' in gravada, false);
   assert.equal('id' in gravada, false);
+  assert.equal('user_id' in gravada, false, 'o criador é do servidor');
+  assert.equal('empresa_id' in gravada, false, 'a empresa é do servidor');
+});
+
+test('tarefa da empresa: responsável e cliente vão e voltam; id inválido é recusado', () => {
+  const RESP = '11111111-1111-4111-8111-111111111111';
+  const CLI = '22222222-2222-4222-8222-222222222222';
+  const registro = paraTarefa({ id: 'u', titulo: 'T', cliente: 'ACME', cliente_id: CLI, responsavel_id: RESP, user_id: RESP,
+    status: 'a_fazer', prioridade: 'normal', checklist: [], commits: [] });
+  assert.equal(registro.clienteId, CLI);
+  assert.equal(registro.responsavelId, RESP);
+  assert.equal(registro.criadorId, RESP);
+  const linha = linhaDeTarefa(normalizarTarefa(registro).tarefa);
+  assert.equal(linha.cliente_id, CLI);
+  assert.equal(linha.responsavel_id, RESP);
+  assert.equal(normalizarTarefa(tarefa({ responsavelId: '1 or 1=1' })).ok, false);
+  assert.equal(normalizarTarefa(tarefa({ clienteId: 'x' })).ok, false);
+  assert.equal(normalizarTarefa(tarefa({ responsavelId: null, clienteId: null })).ok, true);
 });

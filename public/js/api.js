@@ -4,7 +4,7 @@ import {
   COLUNAS_DIAS, COLUNAS_JORNADAS, paraRegistro, paraLinha, umPorDia, linhaDeVersao, agruparVersoes,
 } from '/shared/linhas.js';
 import { normalizarJornada } from '/shared/jornada.js';
-import { normalizarTarefa, COLUNAS_TAREFAS, paraTarefa, linhaDeTarefa } from '/shared/tarefas.js';
+import { normalizarTarefa, COLUNAS_TAREFAS, paraTarefa, linhaDeTarefa, STATUS, LIMITES } from '/shared/tarefas.js';
 import { PREFERENCIAS, opcaoValida } from './aparencia.js';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js';
 import { supabase } from './supabase.js';
@@ -17,6 +17,7 @@ const SESSAO_EXPIRADA = ['PGRST301', 'PGRST303'];
 const CONFLITO_VERSAO = 'modelo_id,vigente_desde';
 const CONFLITO_ATRIBUICAO = 'user_id,desde';
 const TAMANHO_MAXIMO_DO_NOME_DA_JORNADA = 80;
+const TAMANHO_MAXIMO_DO_CLIENTE = LIMITES.cliente;
 const FORMATO_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const BUCKET_DAS_FOTOS = 'avatares';
 const VALIDADE_DA_URL_DA_FOTO_S = 60 * 60;
@@ -387,8 +388,13 @@ async function salvarTarefa(entrada) {
   return paraTarefa(await executar(consulta.select(COLUNAS_TAREFAS).single()));
 }
 
+/* A RLS só deixa apagar quem criou, o responsável ou o ADM: 0 linhas apagadas é falta de permissão. */
 async function apagarTarefa(id) {
-  await executar(supabase.from('tarefas').delete().eq('id', id));
+  exigirId(id);
+  const apagadas = await executar(supabase.from('tarefas').delete().eq('id', id).select('id'));
+  if (apagadas.length === 0) {
+    throw new ErroApi('só quem criou a tarefa, o responsável ou o ADM pode apagá-la', 403);
+  }
   return null;
 }
 
@@ -400,6 +406,99 @@ async function apagarTarefa(id) {
  */
 async function somarFoco(id, ms, pomodoros) {
   await executar(supabase.rpc('somar_foco', { p_tarefa: id, p_ms: Math.round(ms), p_pomodoros: pomodoros }));
+  return null;
+}
+
+function nomeDeCliente(nome) {
+  const limpo = String(nome ?? '').trim();
+  if (!limpo || limpo.length > TAMANHO_MAXIMO_DO_CLIENTE || /[\u0000-\u001F\u007F]/.test(limpo)) {
+    throw new ErroApi(`o cliente deve ter de 1 a ${TAMANHO_MAXIMO_DO_CLIENTE} caracteres`, 400);
+  }
+  return limpo;
+}
+
+/**
+ * @description Clientes da empresa (a RLS limita à do usuário), arquivados inclusive
+ * @returns {Promise<Array<{id: string, nome: string, arquivado: boolean}>>}
+ */
+async function listarClientes() {
+  return executar(supabase.from('clientes').select('id, nome, arquivado').order('nome'));
+}
+
+/**
+ * @description Cria um cliente na empresa do usuário (qualquer membro)
+ * @param {string} nome
+ * @returns {Promise<{id: string, nome: string, arquivado: boolean}>}
+ */
+async function criarCliente(nome) {
+  return executar(supabase.from('clientes').insert({ nome: nomeDeCliente(nome) }).select('id, nome, arquivado').single());
+}
+
+/**
+ * @description Renomeia ou arquiva um cliente (só o ADM, pela RLS)
+ * @param {string} id
+ * @param {{nome?: string, arquivado?: boolean}} campos
+ */
+async function alterarCliente(id, { nome, arquivado }) {
+  exigirId(id);
+  const campos = {};
+  if (nome !== undefined) {
+    campos.nome = nomeDeCliente(nome);
+  }
+  if (arquivado !== undefined) {
+    campos.arquivado = arquivado === true;
+  }
+  const alterados = await executar(supabase.from('clientes').update(campos).eq('id', id).select('id'));
+  if (alterados.length === 0) {
+    throw new ErroApi('só o ADM altera os clientes', 403);
+  }
+  return null;
+}
+
+async function apagarCliente(id) {
+  exigirId(id);
+  const apagados = await executar(supabase.from('clientes').delete().eq('id', id).select('id'));
+  if (apagados.length === 0) {
+    throw new ErroApi('só o ADM apaga clientes', 403);
+  }
+  return null;
+}
+
+/**
+ * @description Colegas ativos da empresa (id e nome), para o responsável da tarefa
+ * @returns {Promise<Array<{id: string, nome: string}>>}
+ */
+async function listarColegas() {
+  return executar(supabase.rpc('colegas'));
+}
+
+/**
+ * @description Configuração das tarefas na empresa: status em uso e se usa o bloco de commits
+ * @param {string} empresaId
+ * @returns {Promise<{status: string[], usaCommits: boolean}>}
+ */
+async function configDasTarefas(empresaId) {
+  exigirId(empresaId);
+  const linha = await executar(supabase.from('empresas').select('status_tarefas, usa_commits').eq('id', empresaId).single());
+  return { status: linha.status_tarefas, usaCommits: linha.usa_commits };
+}
+
+/**
+ * @description Grava a configuração das tarefas da empresa (só o ADM, pela RLS)
+ * @param {string} empresaId
+ * @param {{status: string[], usaCommits: boolean}} config
+ */
+async function salvarConfigDasTarefas(empresaId, { status, usaCommits }) {
+  exigirId(empresaId);
+  const lista = [...new Set(status)].filter((chave) => chave in STATUS);
+  if (!lista.includes('a_fazer') || !lista.includes('concluida')) {
+    throw new ErroApi('"A fazer" e "Concluída" são obrigatórios', 400);
+  }
+  const alteradas = await executar(supabase.from('empresas')
+    .update({ status_tarefas: lista, usa_commits: usaCommits === true }).eq('id', empresaId).select('id'));
+  if (alteradas.length === 0) {
+    throw new ErroApi('só o ADM altera a configuração das tarefas', 403);
+  }
   return null;
 }
 
@@ -432,4 +531,11 @@ export const api = {
   salvarTarefa,
   apagarTarefa,
   somarFoco,
+  listarClientes,
+  criarCliente,
+  alterarCliente,
+  apagarCliente,
+  listarColegas,
+  configDasTarefas,
+  salvarConfigDasTarefas,
 };

@@ -253,6 +253,7 @@
             <button type="button" data-filtro="concluidas" aria-pressed="false">Concluídas</button>
             <button type="button" data-filtro="todas" aria-pressed="false">Todas</button>
           </div>
+          <select id="tarefasResponsavel" aria-label="Filtrar por responsável"></select>
           <select id="tarefasCliente" aria-label="Filtrar por cliente ou projeto"></select>
           <input id="tarefasBusca" type="search" placeholder="Buscar" aria-label="Buscar tarefas">
         </div>
@@ -413,6 +414,7 @@
             <button type="button" data-aba="usuarios" aria-pressed="true">Usuários</button>
             <button type="button" data-aba="jornadas" aria-pressed="false">Jornadas</button>
             <button type="button" data-aba="equipe" aria-pressed="false">Ponto da equipe</button>
+            <button type="button" data-aba="tarefas" aria-pressed="false">Tarefas</button>
             <button type="button" data-aba="plataforma" aria-pressed="false" hidden>Todas as empresas</button>
           </div>
         </div>
@@ -566,6 +568,32 @@
         <p class="texto-mudo pequeno">Só leitura: cada pessoa corrige o próprio ponto. O cálculo é o mesmo da tela Banco, com a jornada da pessoa.</p>
       </div>
 
+      <div class="empresa-secao" id="empresaTarefas" hidden>
+        <div class="colunas">
+          <section class="cartao config-tarefas" aria-labelledby="configTitulo">
+            <div class="cartao-cabeca">
+              <h2 id="configTitulo">Status em uso</h2>
+            </div>
+            <p class="texto-mudo pequeno">Os status que aparecem no menu, no editor e nas colunas do Kanban. "A fazer" e "Concluída" são obrigatórios. Tarefa num status que saiu de uso continua nele até alguém mudar.</p>
+            <div class="config-status" id="configStatus"></div>
+            <label class="caixa config-commits"><input type="checkbox" id="configCommits"><span>Usar o bloco de commits (código, branch e data) nas tarefas</span></label>
+            <div class="jornada-acoes">
+              <span class="texto-mudo pequeno estado" id="configEstado" role="status"></span>
+              <button class="botao botao-primario" id="configSalvar" type="button">Salvar</button>
+            </div>
+          </section>
+
+          <section class="cartao clientes-empresa" aria-labelledby="clientesTitulo">
+            <div class="cartao-cabeca">
+              <h2 id="clientesTitulo">Clientes</h2>
+              <span class="texto-mudo pequeno">nascem quando alguém digita um cliente novo numa tarefa</span>
+            </div>
+            <div class="clientes-corpo" id="clientesCorpo"></div>
+            <span class="texto-mudo pequeno estado" id="clientesEstado" role="status"></span>
+          </section>
+        </div>
+      </div>
+
       <div class="empresa-secao" id="empresaPlataforma" hidden>
         <div class="colunas">
           <section class="cartao empresas-lista" aria-labelledby="empresasTitulo">
@@ -685,7 +713,10 @@
 
       <form class="tarefa-form" id="tarefaForm" novalidate>
         <label>Título<input id="tTitulo" maxlength="200" autocomplete="off" required></label>
-        <label>Cliente / projeto<input id="tCliente" maxlength="80" autocomplete="off" list="tClientes"></label>
+        <div class="tarefa-form-dupla">
+          <label>Cliente / projeto<input id="tCliente" maxlength="80" autocomplete="off" list="tClientes"></label>
+          <label>Responsável<select id="tResponsavel"></select></label>
+        </div>
         <datalist id="tClientes"></datalist>
         <div class="tarefa-form-grade">
           <label>Status<select id="tStatus"></select></label>
@@ -703,7 +734,7 @@
           </div>
         </fieldset>
 
-        <fieldset class="tarefa-bloco">
+        <fieldset class="tarefa-bloco" id="tBlocoCommits">
           <legend>Commits</legend>
           <div class="commits" id="tCommits"></div>
           <button class="botao botao-secundario botao-pequeno" id="tNovoCommit" type="button">Adicionar commit</button>

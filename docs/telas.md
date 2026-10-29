@@ -28,13 +28,16 @@ Todas as telas do app estão em `public/index.html`, como `<section class="tela"
 
 ## Tarefas (`tarefas.js` + `tarefas-store.js`)
 
-- **Nova tarefa rápida:** título e Enter. No filtro "Para hoje", a tarefa já nasce com prazo de hoje.
+As tarefas são da **empresa**: todos os membros veem e editam. Cada tarefa tem um responsável.
+
+- **Nova tarefa rápida:** título e Enter; nasce com você de responsável. No filtro "Para hoje", já nasce com prazo de hoje.
+- **Responsável:** o filtro abre em "Minhas" e troca para "Toda a empresa", "Sem responsável" ou uma pessoa. Na linha, aparece "→ Nome" quando a tarefa é de outra pessoa. O resumo do topo, o Hoje e o pomodoro mostram só as suas.
 - **Lista:** filtros Abertas, Para hoje, Concluídas e Todas, mais cliente/projeto e busca (título, cliente, anotações, código e branch dos commits). Cada linha tem o título com cliente, prazo (laranja hoje, vermelho vencido), progresso do checklist, número de commits, recorrência e foco, o status e o botão de focar. **Mudar o status:** clicar na etiqueta do status abre um menu com as opções (o atual vem marcado); nada muda com um clique solto. Fecha com Esc, clicando fora ou rolando a página. A borda esquerda marca prioridade urgente (vermelha) e alta (laranja); a tarefa em foco fica destacada.
-- **Kanban:** colunas A fazer, Em andamento, Commit realizado, Pendente de teste, Aguardando e Concluída (as 15 mais recentes). Arrastar um cartão para outra coluna muda o status. No celular, o arrastar não existe: muda-se o status pelo editor. A visão escolhida fica guardada no navegador.
-- **Editor em pop-up** (`<dialog>` modal, tela cheia no celular; fecha no X, no Esc ou clicando fora): título, cliente/projeto (com sugestões dos já usados), status, prioridade, prazo, repetição, anotações, checklist (novo item com Enter), commits (código, branch e data, que já vem com hoje) e o resumo de foco com "Focar nesta tarefa". Apagar pede confirmação.
+- **Kanban:** uma coluna por status em uso na empresa (mais a de algum status fora de uso que ainda tenha tarefa); a Concluída mostra as 15 mais recentes. Arrastar um cartão para outra coluna muda o status. No celular, o arrastar não existe: muda-se o status pelo editor. A visão escolhida fica guardada no navegador.
+- **Editor em pop-up** (`<dialog>` modal, tela cheia no celular; fecha no X, no Esc ou clicando fora): título, cliente/projeto (sugestões do cadastro da empresa; um nome novo cria o cliente), responsável (travado para quem não criou, não é o responsável nem o ADM), status (os em uso na empresa), prioridade, prazo, repetição, anotações, checklist (novo item com Enter), commits (código, branch e data, que já vem com hoje; só se a empresa usa commits ou a tarefa já tiver algum) e o resumo de foco com "Focar nesta tarefa". Apagar aparece para quem criou, o responsável e o ADM, e pede confirmação.
 - **Focar:** o botão ▶ (linha, cartão ou editor) escolhe a tarefa no pomodoro e, se o relógio estiver parado no foco, já começa.
 
-No **Hoje**, o cartão "Tarefas de hoje" lista as vencidas, as do dia e as em andamento, com as mesmas ações.
+No **Hoje**, o cartão "Tarefas de hoje" lista as suas vencidas, as do dia e as em andamento, com as mesmas ações.
 
 ## Importar do TiqueTaque (`importacao.js` + `shared/espelho.js`)
 
@@ -64,6 +67,11 @@ A cápsula mostra "Empresa" para o ADM da empresa e para o super ADM; cada um v�
 - Escolha a pessoa: aparecem a jornada dela hoje, o banco acumulado, o saldo e o trabalhado do mês e os dias sem marcação.
 - Embaixo, o histórico por mês (o atual aberto), com as marcações, o trabalhado e o saldo de cada dia. É só leitura: cada pessoa corrige o próprio ponto.
 - O cálculo é o mesmo da tela Banco, com os dias e a jornada da pessoa escolhida.
+
+### Tarefas (`config-tarefas.js`), só o ADM
+
+- **Status em uso:** marque quais dos 6 status a empresa usa ("A fazer" e "Concluída" são obrigatórios) e se o bloco de commits aparece nas tarefas.
+- **Clientes:** cada cliente com quantas tarefas tem; renomear (vale para todas as tarefas), arquivar/reativar (arquivado some das sugestões) e apagar (as tarefas ficam sem cliente no cadastro).
 
 ### Todas as empresas (`plataforma.js` + função `empresas.mjs`), só o super ADM
 
