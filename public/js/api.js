@@ -472,6 +472,78 @@ async function listarColegas() {
   return executar(supabase.rpc('colegas'));
 }
 
+const COLUNAS_ATIVIDADE = 'id, tarefa_id, user_id, tipo, campo, de, para, texto, criado_em';
+const TAMANHO_MAXIMO_DO_COMENTARIO = 4000;
+
+function paraAtividade(linha) {
+  return {
+    id: linha.id, tarefaId: linha.tarefa_id, userId: linha.user_id, tipo: linha.tipo,
+    campo: linha.campo, de: linha.de, para: linha.para, texto: linha.texto, criadoEm: linha.criado_em,
+  };
+}
+
+/**
+ * @description Atividade de uma tarefa (criação, mudanças e comentários), da mais antiga para a mais nova
+ * @param {string} tarefaId
+ * @returns {Promise<object[]>}
+ */
+async function listarAtividade(tarefaId) {
+  exigirId(tarefaId);
+  const linhas = await executar(supabase.from('atividades_tarefa').select(COLUNAS_ATIVIDADE)
+    .eq('tarefa_id', tarefaId).order('criado_em').order('id'));
+  return linhas.map(paraAtividade);
+}
+
+/**
+ * @description Comenta numa tarefa da empresa (o autor é o usuário logado)
+ * @param {string} tarefaId
+ * @param {string} texto
+ * @returns {Promise<object>} o comentário gravado
+ */
+async function comentar(tarefaId, texto) {
+  exigirId(tarefaId);
+  const limpo = String(texto ?? '').trim();
+  if (!limpo || limpo.length > TAMANHO_MAXIMO_DO_COMENTARIO) {
+    throw new ErroApi(`o comentário deve ter de 1 a ${TAMANHO_MAXIMO_DO_COMENTARIO} caracteres`, 400);
+  }
+  const linha = await executar(supabase.from('atividades_tarefa')
+    .insert({ tarefa_id: tarefaId, tipo: 'comentario', texto: limpo, user_id: exigirUsuario() })
+    .select(COLUNAS_ATIVIDADE).single());
+  return paraAtividade(linha);
+}
+
+async function apagarComentario(id) {
+  if (!Number.isSafeInteger(Number(id))) {
+    throw new ErroApi('comentário inválido', 400);
+  }
+  const apagados = await executar(supabase.from('atividades_tarefa').delete().eq('id', Number(id)).select('id'));
+  if (apagados.length === 0) {
+    throw new ErroApi('só o autor ou o ADM apaga o comentário', 403);
+  }
+  return null;
+}
+
+/**
+ * @description Assina, em tempo real, as tarefas e a atividade da empresa (a RLS vale para o Realtime).
+ *   Só insert e update: a publicação não manda delete (o Realtime não aplicaria a RLS a ele)
+ * @param {string} empresaId
+ * @param {{aoGravarTarefa: Function, aoRegistrarAtividade: Function}} ouvintes
+ * @returns {() => void} cancela a assinatura
+ */
+function assinarMudancas(empresaId, { aoGravarTarefa, aoRegistrarAtividade }) {
+  exigirId(empresaId);
+  const filtro = `empresa_id=eq.${empresaId}`;
+  const canal = supabase.channel(`empresa-${empresaId}`)
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'tarefas', filter: filtro },
+      ({ new: linha }) => aoGravarTarefa(paraTarefa(linha)))
+    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'tarefas', filter: filtro },
+      ({ new: linha }) => aoGravarTarefa(paraTarefa(linha)))
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'atividades_tarefa', filter: filtro },
+      ({ new: linha }) => aoRegistrarAtividade(paraAtividade(linha)))
+    .subscribe();
+  return () => supabase.removeChannel(canal);
+}
+
 /**
  * @description Configuração das tarefas na empresa: status em uso e se usa o bloco de commits
  * @param {string} empresaId
@@ -538,4 +610,8 @@ export const api = {
   listarColegas,
   configDasTarefas,
   salvarConfigDasTarefas,
+  listarAtividade,
+  comentar,
+  apagarComentario,
+  assinarMudancas,
 };

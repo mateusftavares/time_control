@@ -29,18 +29,20 @@ O antigo "Banco de horas". O ADM vê as abas **Meu ponto** e **Equipe**; os filt
 - **Filtros:** Todos, Sem marcação e Abonados.
 - **Editor de dia:** clicar num dia abre o painel lateral para trocar o tipo (Dia trabalhado, Feriado, Folga, Compensação), corrigir as marcações, ver a prévia do saldo e salvar ou apagar.
 
-## Tarefas (`tarefas.js` + `tarefas-store.js`)
+## Tarefas (`tarefas.js` + `tarefa-detalhe.js` + `tarefas-store.js`), no formato do OpenProject
 
-As tarefas são da **empresa**: todos os membros veem e editam. Cada tarefa tem um responsável.
+As tarefas são da **empresa**: todos os membros veem e editam. Cada tarefa tem um responsável. O que um colega muda aparece sozinho (tempo real).
 
-- **Nova tarefa rápida:** título e Enter; nasce com você de responsável. No filtro "Para hoje", já nasce com prazo de hoje.
-- **Responsável:** o filtro abre em "Minhas" e troca para "Toda a empresa", "Sem responsável" ou uma pessoa. Na linha, aparece "→ Nome" quando a tarefa é de outra pessoa. O resumo do topo, o Hoje e o pomodoro mostram só as suas.
-- **Lista:** filtros Abertas, Para hoje, Concluídas e Todas, mais cliente/projeto e busca (título, cliente, anotações, código e branch dos commits). Cada linha tem o título com cliente, prazo (laranja hoje, vermelho vencido), progresso do checklist, número de commits, recorrência e foco, o status e o botão de focar. **Mudar o status:** clicar na etiqueta do status abre um menu com as opções (o atual vem marcado); nada muda com um clique solto. Fecha com Esc, clicando fora ou rolando a página. A borda esquerda marca prioridade urgente (vermelha) e alta (laranja); a tarefa em foco fica destacada.
-- **Kanban:** uma coluna por status em uso na empresa (mais a de algum status fora de uso que ainda tenha tarefa); a Concluída mostra as 15 mais recentes. Arrastar um cartão para outra coluna muda o status. No celular, o arrastar não existe: muda-se o status pelo editor. A visão escolhida fica guardada no navegador.
-- **Editor em pop-up** (`<dialog>` modal, tela cheia no celular; fecha no X, no Esc ou clicando fora): título, cliente/projeto (sugestões do cadastro da empresa; um nome novo cria o cliente), responsável (travado para quem não criou, não é o responsável nem o ADM), status (os em uso na empresa), prioridade, prazo, repetição, anotações, checklist (novo item com Enter), commits (código, branch e data, que já vem com hoje; só se a empresa usa commits ou a tarefa já tiver algum) e o resumo de foco com "Focar nesta tarefa". Apagar aparece para quem criou, o responsável e o ADM, e pede confirmação.
-- **Focar:** o botão ▶ (linha, cartão ou editor) escolhe a tarefa no pomodoro e, se o relógio estiver parado no foco, já começa.
+- **Nova tarefa rápida:** título e Enter; nasce com você de responsável e já abre no painel. No filtro "Para hoje", nasce com prazo de hoje.
+- **Lista em tabela:** título, cliente, responsável, status (menu na etiqueta), prioridade, prazo, foco e o ▶ de focar. Agrupada por status (padrão), cliente, responsável ou sem grupos; cada grupo recolhe. Filtros Abertas, Para hoje, Concluídas e Todas, responsável ("Minhas" por padrão, "Toda a empresa", "Sem responsável" ou uma pessoa), cliente e busca (título, cliente, anotações, código e branch dos commits). Em tabela estreita, cliente e responsável descem para baixo do título. No celular, a lista vira cartões.
+- **Kanban:** uma coluna por status em uso na empresa (mais a de algum status fora de uso que ainda tenha tarefa); a Concluída mostra as 15 mais recentes. Arrastar um cartão muda o status.
+- **Painel da tarefa:** abre ao clicar numa linha ou cartão. Em tela larga (1400 px ou mais) fica ao lado da lista, com a divisória arrastável (a largura fica guardada); no tablet, é uma folha por cima da lista; no celular, tela cheia com "Mudar status" e "Focar" embaixo. O botão de expandir leva o painel para a tela cheia em qualquer tamanho. Fecha no X, no Esc, no voltar (celular) ou clicando fora (tablet).
+  - **Visão geral:** título, status, prioridade, responsável (travado para quem não criou, não é o responsável nem o ADM), cliente, prazo, repetição, foco, descrição, checklist e commits (se a empresa usa ou a tarefa já tem). **Salva sozinho:** seleções e datas na hora, textos quando a digitação para, cliente ao sair do campo (para não criar cliente com o nome pela metade). "Salvo automaticamente" ou o erro aparecem no topo dos detalhes.
+  - **Atividade:** linha do tempo com a criação, as mudanças de status, título, prazo, prioridade, responsável e cliente (gravadas pelo servidor, com quem fez) e os comentários. Filtros Tudo, Comentários e Mudanças; comentar no topo; o autor e o ADM apagam o comentário.
+  - Relações, Horas e Arquivos aparecem como "em breve" (fases seguintes).
+- **Focar:** o ▶ (linha, cartão ou painel) escolhe a tarefa no pomodoro e, se o relógio estiver parado no foco, já começa.
 
-No **Hoje**, o cartão "Tarefas de hoje" lista as suas vencidas, as do dia e as em andamento, com as mesmas ações.
+No **Hoje**, o cartão "Tarefas de hoje" lista as suas vencidas, as do dia e as em andamento; abrir uma delas leva para a tela de Tarefas com o painel aberto.
 
 ## Importar do TiqueTaque (`importacao.js` + `shared/espelho.js`): pop-up do Ponto
 

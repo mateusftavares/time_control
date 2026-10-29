@@ -14,11 +14,11 @@
 
 # Troque SEU-PROJETO pelo ref do projeto Supabase (o mesmo de public/js/config.js).
 # script-src: só os próprios módulos e o supabase-js do jsDelivr (versão fixada).
-# connect-src: o próprio site (função /api/usuarios) e a API do Supabase; img-src: fotos do Storage (URL assinada).
+# connect-src: o próprio site (funções /api/*), a API do Supabase e o Realtime dele (wss); img-src: fotos do Storage (URL assinada).
 [[headers]]
   for = "/*"
   [headers.values]
-    Content-Security-Policy = "default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://mxxphaykywrklezoyorq.supabase.co; connect-src 'self' https://mxxphaykywrklezoyorq.supabase.co; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://mxxphaykywrklezoyorq.supabase.co; connect-src 'self' https://mxxphaykywrklezoyorq.supabase.co wss://mxxphaykywrklezoyorq.supabase.co; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
     X-Content-Type-Options = "nosniff"
     X-Frame-Options = "DENY"
     Referrer-Policy = "no-referrer"

@@ -1,29 +1,27 @@
 import { hoje, rotuloDia } from '/shared/tempo.js';
-import {
-  STATUS, PRIORIDADES, RECORRENCIAS, tarefaVazia, situacaoDoPrazo, tarefasDoDia, progressoDoChecklist,
-} from '/shared/tarefas.js';
+import { STATUS, PRIORIDADES, RECORRENCIAS, tarefaVazia, situacaoDoPrazo, tarefasDoDia, progressoDoChecklist } from '/shared/tarefas.js';
 import * as store from './tarefas-store.js';
 import { elementos, escapar } from './util.js';
+import { h, icone, iconePlay } from './dom.js';
 import { mostrarAviso, avisoDeFalha } from './aviso.js';
 import { focarEm, tarefaEmFoco, aoMudarTarefaEmFoco } from './pomodoro.js';
+import { irPara } from './navegacao.js';
+import { iniciarDetalhe, abrirTarefa, tarefaAberta, sincronizar, atualizarFoco, aoMudarPainel } from './tarefa-detalhe.js';
+
+/* Tela de Tarefas: lista em tabela agrupada (cartões no celular) ou Kanban, com o painel da tarefa ao lado.
+   O bloco "Tarefas de hoje" da tela Hoje também sai daqui. */
 
 const el = elementos([
-  'tarefasSub', 'tarefasVisao', 'tarefaRapida', 'tarefaRapidaTitulo', 'tarefasFiltro', 'tarefasResponsavel', 'tarefasCliente',
-  'tarefasBusca',
-  'tarefasLista', 'tarefasLinhas', 'tarefasKanban', 'hojeTarefas',
-  'tarefaEditor', 'tarefaEditorRotulo', 'tarefaEditorTitulo', 'tarefaFechar', 'tarefaForm',
-  'tTitulo', 'tCliente', 'tClientes', 'tResponsavel', 'tStatus', 'tPrioridade', 'tPrazo', 'tRecorrencia', 'tAnotacoes',
-  'tChecklist', 'tChecklistProgresso', 'tNovoItem', 'tBlocoCommits', 'tCommits', 'tNovoCommit', 'tFoco', 'tFocar',
-  'tarefaEstado', 'tarefaSalvar', 'tarefaApagar', 'tarefaStatusMenu',
+  'tarefasSub', 'tarefasVisao', 'tarefaRapida', 'tarefaRapidaTitulo', 'tarefasFiltro', 'tarefasAgrupar', 'tarefasResponsavel',
+  'tarefasCliente', 'tarefasBusca', 'tarefasLista', 'tarefasKanban', 'hojeTarefas', 'tarefaStatusMenu',
 ]);
 
 const CHAVE_DA_VISAO = 'timever.tarefas.visao';
 const CONCLUIDAS_NO_KANBAN = 15;
-const AVISO_SALVO_MS = 1500;
 const MINUTO = 60 * 1000;
 const SVG_ABRIR_MENU = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>';
 const SVG_FOCAR = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10-6.5z"></path></svg>';
-const SVG_REMOVER = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12"></path><path d="M18 6L6 18"></path></svg>';
+const COLUNAS = ['col-titulo', 'col-cliente', 'col-responsavel', 'col-status', 'col-prioridade', 'col-prazo', 'col-foco', 'col-acao'];
 
 const FILTROS = {
   abertas: (lista) => lista.filter((tarefa) => tarefa.status !== 'concluida'),
@@ -35,11 +33,11 @@ const FILTROS = {
 
 let visao = lerVisao();
 let filtro = 'abertas';
+let agrupar = 'status';
 let responsavel = 'eu';
 let cliente = '';
 let busca = '';
-let editada = null;
-let instantaneoDoEditor = '';
+const gruposFechados = new Set();
 
 function lerVisao() {
   try {
@@ -56,6 +54,8 @@ function guardarVisao() {
     // armazenamento bloqueado: a visão volta a ser a lista no próximo acesso
   }
 }
+
+const estreita = () => innerWidth < 792;
 
 /**
  * @description Tempo de foco para exibir, ex.: "25 min", "1h15"
@@ -86,13 +86,21 @@ function rotuloDoPrazo(prazo) {
   return situacao === 'vencida' ? `venceu ${rotuloDia(prazo)}` : rotuloDia(prazo);
 }
 
+function nomeDoResponsavel(tarefa) {
+  if (!tarefa.responsavelId) {
+    return 'sem responsável';
+  }
+  return tarefa.responsavelId === store.quemSou().id ? 'você' : store.nomeDoColega(tarefa.responsavelId) || 'ex-membro';
+}
+
+/* ---------- linhas em HTML (Hoje e Kanban): todo texto passa por escapar() ---------- */
+
 /* Só aparece quando a tarefa não é de quem está olhando: "→ Ana" ou "sem responsável". */
 function rotuloDoResponsavel(tarefa) {
   if (tarefa.responsavelId === store.quemSou().id) {
     return '';
   }
-  const nome = tarefa.responsavelId ? store.nomeDoColega(tarefa.responsavelId) || 'ex-membro' : 'sem responsável';
-  return `<span class="tarefa-responsavel">→ ${escapar(nome)}</span>`;
+  return `<span class="tarefa-responsavel">→ ${escapar(nomeDoResponsavel(tarefa))}</span>`;
 }
 
 function metaDaTarefa(tarefa) {
@@ -150,6 +158,8 @@ function htmlDoCartao(tarefa) {
     + '</article>';
 }
 
+/* ---------- filtros ---------- */
+
 function bateComBusca(tarefa) {
   if (!busca) {
     return true;
@@ -200,7 +210,6 @@ function pintarClientes() {
   }
   el.tarefasCliente.replaceChildren(new Option('Todos os clientes', ''), ...clientes.map((nome) => new Option(nome, nome)));
   el.tarefasCliente.value = cliente;
-  el.tClientes.replaceChildren(...store.clientesAtivos().map((cadastrado) => new Option(cadastrado.nome)));
 }
 
 function pintarResumo() {
@@ -215,12 +224,125 @@ function pintarResumo() {
   el.tarefasSub.textContent = `Com você: ${partes.join(' · ')}`;
 }
 
+/* ---------- lista: tabela agrupada (cartões no celular) ---------- */
+
+function chaveDoGrupo(tarefa) {
+  if (agrupar === 'status') {
+    return tarefa.status;
+  }
+  if (agrupar === 'cliente') {
+    return tarefa.cliente || '';
+  }
+  return agrupar === 'responsavel' ? tarefa.responsavelId ?? '' : 'todas';
+}
+
+function tituloDoGrupo(chave) {
+  if (agrupar === 'status') {
+    return STATUS[chave] ?? chave;
+  }
+  if (agrupar === 'cliente') {
+    return chave || 'Sem cliente';
+  }
+  return nomeDoResponsavel({ responsavelId: chave || null });
+}
+
+function grupos(lista) {
+  if (agrupar === 'nenhum') {
+    return [{ chave: 'todas', titulo: null, tarefas: lista }];
+  }
+  const ordem = agrupar === 'status' ? Object.keys(STATUS) : [...new Set(lista.map(chaveDoGrupo))]
+    .sort((a, b) => tituloDoGrupo(a).localeCompare(tituloDoGrupo(b), 'pt-BR'));
+  return ordem.map((chave) => ({ chave, titulo: tituloDoGrupo(chave), tarefas: lista.filter((tarefa) => chaveDoGrupo(tarefa) === chave) }))
+    .filter((grupo) => grupo.tarefas.length);
+}
+
+const grupoFechado = (grupo) => gruposFechados.has(`${agrupar}:${grupo.chave}`);
+
+function botaoDoGrupo(grupo) {
+  const fechado = grupoFechado(grupo);
+  return h('button', { class: 'grupo-botao', type: 'button', 'aria-expanded': String(!fechado),
+    onclick: () => {
+      const chave = `${agrupar}:${grupo.chave}`;
+      if (fechado) {
+        gruposFechados.delete(chave);
+      } else {
+        gruposFechados.add(chave);
+      }
+      render();
+    } }, icone('seta'), grupo.titulo, h('span', { class: 'grupo-contador' }, grupo.tarefas.length));
+}
+
+function prazoDaTarefa(tarefa) {
+  return tarefa.prazo
+    ? h('span', { class: 'tarefa-prazo mono pequeno', 'data-situacao': situacaoDoPrazo(tarefa.prazo, hoje()) }, rotuloDoPrazo(tarefa.prazo))
+    : h('span', { class: 'texto-apagado' }, '—');
+}
+
+function acoesDaTarefa(tarefa) {
+  const status = h('button', { class: 'etiqueta-status', type: 'button', 'data-acao': 'status', 'data-status': tarefa.status,
+    'aria-haspopup': 'menu', 'aria-expanded': 'false', 'aria-label': `Status de ${tarefa.titulo}: ${STATUS[tarefa.status] ?? tarefa.status}. Mudar` },
+  STATUS[tarefa.status] ?? tarefa.status, icone('seta'));
+  const focar = tarefa.status === 'concluida' ? h('span', {})
+    : h('button', { class: 'botao-icone tarefa-focar', type: 'button', 'data-acao': 'focar', 'aria-label': `Focar em ${tarefa.titulo}` }, iconePlay());
+  return { status, focar };
+}
+
+function linhaDaTabela(tarefa) {
+  const { status, focar } = acoesDaTarefa(tarefa);
+  return h('tr', { class: 'linha', 'data-id': tarefa.id, 'data-prioridade': tarefa.prioridade, 'data-status': tarefa.status,
+    'data-foco': String(tarefa.id === tarefaEmFoco()), 'aria-current': String(tarefa.id === tarefaAberta()), tabindex: '0' },
+  h('td', { class: 'col-titulo' }, h('span', { class: 'tarefa-titulo' }, tarefa.titulo),
+    h('span', { class: 'sub-linha' }, [tarefa.cliente, nomeDoResponsavel(tarefa)].filter(Boolean).join(' · '))),
+  h('td', { class: 'col-cliente' }, tarefa.cliente || '—'),
+  h('td', { class: 'col-responsavel' }, nomeDoResponsavel(tarefa)),
+  h('td', { class: 'col-status' }, status),
+  h('td', { class: 'col-prioridade' }, h('span', { class: 'prioridade', 'data-prioridade': tarefa.prioridade }, PRIORIDADES[tarefa.prioridade])),
+  h('td', { class: 'col-prazo' }, prazoDaTarefa(tarefa)),
+  h('td', { class: 'col-foco mono' }, tarefa.focoMs ? textoDoFoco(tarefa.focoMs) : '—'),
+  h('td', { class: 'col-acao' }, focar));
+}
+
+function pintarTabela(lista) {
+  const corpo = h('tbody', {}, grupos(lista).map((grupo) => [
+    grupo.titulo ? h('tr', { class: 'grupo' }, h('td', { colspan: '8' }, botaoDoGrupo(grupo))) : null,
+    grupoFechado(grupo) ? null : grupo.tarefas.map(linhaDaTabela),
+  ]));
+  const cabeca = h('thead', {}, h('tr', {}, ['Título', 'Cliente', 'Responsável', 'Status', 'Prioridade', 'Prazo', 'Foco', '']
+    .map((texto, i) => h('th', { class: COLUNAS[i] }, texto || h('span', { class: 'so-leitor' }, 'Ações')))));
+  el.tarefasLista.replaceChildren(h('table', { class: 'tabela-tarefas' }, cabeca, corpo));
+}
+
+function cartaoDaLista(tarefa) {
+  const { status, focar } = acoesDaTarefa(tarefa);
+  const { feitos, total } = progressoDoChecklist(tarefa);
+  return h('div', { class: 'cartao-tarefa', role: 'button', tabindex: '0', 'data-id': tarefa.id, 'data-acao': 'abrir',
+    'data-prioridade': tarefa.prioridade, 'aria-current': String(tarefa.id === tarefaAberta()) },
+  h('span', { class: 'tarefa-titulo' }, tarefa.titulo),
+  h('span', { class: 'tarefa-meta' }, [tarefa.cliente, nomeDoResponsavel(tarefa), total ? `${feitos}/${total} itens` : null,
+    tarefa.focoMs ? textoDoFoco(tarefa.focoMs) : null].filter(Boolean).join(' · ')),
+  h('span', { class: 'cartao-tarefa-rodape' }, status, prazoDaTarefa(tarefa), focar));
+}
+
+function pintarCartoes(lista) {
+  el.tarefasLista.replaceChildren(h('div', { class: 'lista-cartoes' }, grupos(lista).map((grupo) => h('section', { class: 'lista-grupo' },
+    grupo.titulo ? botaoDoGrupo(grupo) : null,
+    grupoFechado(grupo) ? null : grupo.tarefas.map(cartaoDaLista)))));
+}
+
 function pintarLista() {
   const lista = tarefasFiltradas();
-  el.tarefasLinhas.innerHTML = lista.length
-    ? lista.map(htmlDaLinha).join('')
-    : '<p class="texto-mudo tarefas-vazio">Nenhuma tarefa aqui.</p>';
+  if (!lista.length) {
+    el.tarefasLista.replaceChildren(h('p', { class: 'texto-mudo tarefas-vazio' }, 'Nenhuma tarefa aqui.'));
+    return;
+  }
+  if (estreita()) {
+    pintarCartoes(lista);
+  } else {
+    pintarTabela(lista);
+  }
 }
+
+/* ---------- kanban e Hoje ---------- */
 
 function pintarKanban() {
   const lista = tarefasFiltradas('todas');
@@ -254,6 +376,7 @@ function pintarVisao() {
   el.tarefasLista.hidden = visao !== 'lista';
   el.tarefasKanban.hidden = visao !== 'kanban';
   el.tarefasFiltro.hidden = visao !== 'lista';
+  el.tarefasAgrupar.closest('label').hidden = visao !== 'lista';
 }
 
 function render() {
@@ -268,230 +391,8 @@ function render() {
     pintarKanban();
   }
   pintarHoje();
-  sincronizarEditor();
+  sincronizar();
 }
-
-/* Concluir pela lista, mover no Kanban ou apagar com o editor aberto: o editor acompanha, para o
-   Salvar não devolver o status antigo nem tentar gravar uma tarefa que já não existe. */
-function sincronizarEditor() {
-  if (!editada?.id) {
-    return;
-  }
-  const atual = store.obter(editada.id);
-  if (!atual) {
-    fecharEditor();
-    return;
-  }
-  if (atual.status !== editada.status) {
-    const estavaSujo = editorSujo();
-    editada.status = atual.status;
-    el.tStatus.value = atual.status;
-    if (!estavaSujo) {
-      instantaneoDoEditor = JSON.stringify(dadosDoEditor());
-    }
-  }
-  pintarFocoDoEditor();
-}
-
-/* ---------- editor ---------- */
-
-function opcoes(select, mapa, vazio) {
-  const lista = Object.entries(mapa).map(([valor, rotulo]) => new Option(rotulo, valor));
-  select.replaceChildren(...(vazio ? [new Option(vazio, '')] : []), ...lista);
-}
-
-function mostrarEstado(texto, tipo = '') {
-  el.tarefaEstado.textContent = texto;
-  el.tarefaEstado.className = `texto-mudo pequeno estado ${tipo}`.trim();
-}
-
-function pintarChecklist() {
-  const { feitos, total } = progressoDoChecklist(editada);
-  el.tChecklistProgresso.textContent = total ? `${feitos}/${total}` : '';
-  el.tChecklist.innerHTML = editada.checklist.map((item, indice) => '<div class="checklist-item">'
-    + `<label class="caixa"><input type="checkbox" data-indice="${indice}"${item.feito ? ' checked' : ''}>`
-    + `<span>${escapar(item.texto)}</span></label>`
-    + `<button class="botao-icone" type="button" data-remover="${indice}" aria-label="Remover o item ${escapar(item.texto)}">${SVG_REMOVER}</button>`
-    + '</div>').join('');
-}
-
-function pintarCommits() {
-  el.tCommits.innerHTML = editada.commits.map((commit, indice) => `<div class="commit-linha" data-indice="${indice}">`
-    + `<label>Código<input class="mono" data-campo="hash" value="${escapar(commit.hash)}" maxlength="40" autocomplete="off" spellcheck="false" placeholder="0cca8936d"></label>`
-    + `<label>Branch<input data-campo="branch" value="${escapar(commit.branch)}" maxlength="120" autocomplete="off" spellcheck="false" placeholder="DEV/minha_branch"></label>`
-    + `<label>Data<input type="date" data-campo="data" value="${escapar(commit.data ?? '')}"></label>`
-    + `<button class="botao-icone" type="button" data-remover="${indice}" aria-label="Remover o commit">${SVG_REMOVER}</button>`
-    + '</div>').join('') || '<p class="texto-mudo pequeno">Nenhum commit registrado.</p>';
-}
-
-function pintarFocoDoEditor() {
-  const atual = store.obter(editada.id) ?? editada;
-  el.tFoco.textContent = resumoDoFoco(atual) || 'Sem foco registrado';
-  el.tFocar.disabled = !editada.id || atual.status === 'concluida';
-  el.tFocar.textContent = editada.id && editada.id === tarefaEmFoco() ? 'Em foco agora' : 'Focar nesta tarefa';
-}
-
-/* Apagar e trocar o responsável: quem criou, o responsável ou o ADM (o servidor confere de novo). */
-function temControle(tarefa) {
-  const { id, ehAdm } = store.quemSou();
-  return ehAdm || tarefa.criadorId === id || tarefa.responsavelId === id;
-}
-
-const podeApagar = (tarefa) => Boolean(tarefa.id) && temControle(tarefa);
-
-function preencherResponsavel() {
-  const colegas = store.listarColegas();
-  const foraDaLista = editada.responsavelId && !colegas.some((colega) => colega.id === editada.responsavelId)
-    ? [new Option('ex-membro', editada.responsavelId)] : [];
-  el.tResponsavel.replaceChildren(new Option('Sem responsável', ''), ...foraDaLista,
-    ...colegas.map((colega) => new Option(colega.id === store.quemSou().id ? `${colega.nome} (você)` : colega.nome, colega.id)));
-  el.tResponsavel.value = editada.responsavelId ?? '';
-  el.tResponsavel.disabled = Boolean(editada.id) && !temControle(editada);
-  el.tResponsavel.title = el.tResponsavel.disabled ? 'Só quem criou, o responsável ou o ADM troca o responsável' : '';
-}
-
-function preencherEditor() {
-  el.tarefaEditorRotulo.textContent = editada.id ? 'Editar tarefa' : 'Nova tarefa';
-  el.tarefaEditorTitulo.textContent = editada.titulo || 'Nova tarefa';
-  el.tTitulo.value = editada.titulo;
-  el.tCliente.value = editada.cliente;
-  preencherResponsavel();
-  opcoes(el.tStatus, statusEmUso(editada.status));
-  el.tStatus.value = editada.status;
-  el.tBlocoCommits.hidden = !store.configuracao().usaCommits && editada.commits.length === 0;
-  el.tPrioridade.value = editada.prioridade;
-  el.tPrazo.value = editada.prazo ?? '';
-  el.tRecorrencia.value = editada.recorrencia ?? '';
-  el.tAnotacoes.value = editada.anotacoes;
-  el.tNovoItem.value = '';
-  el.tarefaApagar.hidden = !podeApagar(editada);
-  mostrarEstado('');
-  pintarChecklist();
-  pintarCommits();
-  pintarFocoDoEditor();
-  instantaneoDoEditor = JSON.stringify(dadosDoEditor());
-}
-
-function editorSujo() {
-  return Boolean(editada) && JSON.stringify(dadosDoEditor()) !== instantaneoDoEditor;
-}
-
-/* X, Esc e clique fora: com alteração não salva, pergunta antes de descartar. */
-function pedirParaFechar() {
-  if (!editorSujo() || confirm('Descartar as alterações não salvas desta tarefa?')) {
-    fecharEditor();
-  }
-}
-
-function abrirEditor(tarefa) {
-  editada = structuredClone(tarefa);
-  preencherEditor();
-  if (!el.tarefaEditor.open) {
-    el.tarefaEditor.showModal();
-  }
-  el.tTitulo.focus();
-}
-
-/* Fechar pelo X, pelo Esc ou clicando fora: o evento "close" do dialog solta a tarefa editada. */
-function fecharEditor() {
-  if (el.tarefaEditor.open) {
-    el.tarefaEditor.close();
-  }
-}
-
-function dadosDoEditor() {
-  return {
-    ...editada,
-    titulo: el.tTitulo.value,
-    cliente: el.tCliente.value,
-    responsavelId: el.tResponsavel.value || null,
-    status: el.tStatus.value,
-    prioridade: el.tPrioridade.value,
-    prazo: el.tPrazo.value || null,
-    recorrencia: el.tRecorrencia.value || null,
-    anotacoes: el.tAnotacoes.value,
-  };
-}
-
-async function salvarEditor(evento) {
-  evento.preventDefault();
-  el.tarefaSalvar.disabled = true;
-  try {
-    const gravada = await store.salvar(dadosDoEditor());
-    if (!el.tarefaEditor.open) {
-      return;
-    }
-    editada = structuredClone(gravada);
-    preencherEditor();
-    mostrarEstado('Tarefa salva.', 'ok');
-    setTimeout(() => el.tarefaEstado.textContent === 'Tarefa salva.' && mostrarEstado(''), AVISO_SALVO_MS);
-  } catch (erro) {
-    mostrarEstado(`Não foi possível salvar: ${erro.message}.`, 'erro');
-  } finally {
-    el.tarefaSalvar.disabled = false;
-  }
-}
-
-async function apagarEditada() {
-  if (!editada?.id || !confirm(`Apagar a tarefa "${editada.titulo}"? Não dá para desfazer.`)) {
-    return;
-  }
-  try {
-    await store.apagar(editada.id);
-    fecharEditor();
-  } catch (erro) {
-    mostrarEstado(`Não foi possível apagar: ${erro.message}.`, 'erro');
-  }
-}
-
-function adicionarItem(evento) {
-  if (evento.key !== 'Enter') {
-    return;
-  }
-  evento.preventDefault();
-  const texto = el.tNovoItem.value.trim();
-  if (texto) {
-    editada.checklist.push({ texto, feito: false });
-    el.tNovoItem.value = '';
-    pintarChecklist();
-  }
-}
-
-function mexerNoChecklist(evento) {
-  const marcador = evento.target.closest('input[data-indice]');
-  if (marcador) {
-    editada.checklist[Number(marcador.dataset.indice)].feito = marcador.checked;
-    pintarChecklist();
-    return;
-  }
-  const remover = evento.target.closest('[data-remover]');
-  if (remover) {
-    editada.checklist.splice(Number(remover.dataset.remover), 1);
-    pintarChecklist();
-  }
-}
-
-function mexerNosCommits(evento) {
-  const remover = evento.target.closest('[data-remover]');
-  if (remover && evento.type === 'click') {
-    editada.commits.splice(Number(remover.dataset.remover), 1);
-    pintarCommits();
-    return;
-  }
-  const campo = evento.target.closest('input[data-campo]');
-  if (campo && evento.type === 'input') {
-    const indice = Number(campo.closest('.commit-linha').dataset.indice);
-    editada.commits[indice][campo.dataset.campo] = campo.value || (campo.dataset.campo === 'data' ? null : '');
-  }
-}
-
-function novoCommit() {
-  editada.commits.push({ hash: '', branch: '', data: hoje() });
-  pintarCommits();
-  el.tCommits.querySelector('.commit-linha:last-child input')?.focus();
-}
-
-/* ---------- ações nas linhas e cartões ---------- */
 
 /* ---------- menu de status: um só, posicionado junto ao botão clicado ---------- */
 
@@ -567,18 +468,25 @@ function ligarMenuDeStatus() {
   document.addEventListener('scroll', () => fecharMenuDeStatus(), true);
 }
 
+/* ---------- ações nas linhas, cartões e no Hoje ---------- */
+
 function agirNaTarefa(evento) {
-  const botao = evento.target.closest('[data-acao]');
-  const id = botao?.closest('[data-id]')?.dataset.id;
+  const alvo = evento.target.closest('[data-acao]') ?? evento.target.closest('tr.linha');
+  const id = alvo?.closest('[data-id]')?.dataset.id;
   if (!id) {
     return;
   }
-  if (botao.dataset.acao === 'status') {
-    abrirMenuDeStatus(botao, id);
-  } else if (botao.dataset.acao === 'focar') {
+  const acao = alvo.dataset.acao ?? 'abrir';
+  if (acao === 'status') {
+    abrirMenuDeStatus(alvo, id);
+  } else if (acao === 'focar') {
     focarEm(id);
   } else {
-    abrirEditor(store.obter(id));
+    // do Hoje, abrir leva para a tela de Tarefas, onde fica o painel
+    if (el.hojeTarefas.contains(alvo)) {
+      irPara('tarefas');
+    }
+    abrirTarefa(id);
   }
 }
 
@@ -589,8 +497,9 @@ async function adicionarRapido(evento) {
     return;
   }
   try {
-    await store.salvar({ ...tarefaVazia(), titulo, responsavelId: store.quemSou().id, prazo: filtro === 'hoje' ? hoje() : null });
+    const criada = await store.salvar({ ...tarefaVazia(), titulo, responsavelId: store.quemSou().id, prazo: filtro === 'hoje' ? hoje() : null });
     el.tarefaRapidaTitulo.value = '';
+    abrirTarefa(criada.id);
   } catch (erro) {
     mostrarAviso(avisoDeFalha('criar a tarefa', erro));
   }
@@ -652,88 +561,56 @@ function ligarFiltros() {
       render();
     }
   });
-  el.tarefasResponsavel.addEventListener('change', () => {
-    responsavel = el.tarefasResponsavel.value;
+  const aoMudar = (alvo, aplicar) => alvo.addEventListener(alvo.tagName === 'INPUT' ? 'input' : 'change', () => {
+    aplicar(alvo.value);
     render();
   });
-  el.tarefasCliente.addEventListener('change', () => {
-    cliente = el.tarefasCliente.value;
-    render();
-  });
-  el.tarefasBusca.addEventListener('input', () => {
-    busca = el.tarefasBusca.value.trim().toLowerCase();
-    render();
-  });
+  aoMudar(el.tarefasAgrupar, (valor) => { agrupar = valor; });
+  aoMudar(el.tarefasResponsavel, (valor) => { responsavel = valor; });
+  aoMudar(el.tarefasCliente, (valor) => { cliente = valor; });
+  aoMudar(el.tarefasBusca, (valor) => { busca = valor.trim().toLowerCase(); });
 }
 
-function ligarEditor() {
-  el.tarefaForm.addEventListener('submit', salvarEditor);
-  el.tarefaFechar.addEventListener('click', pedirParaFechar);
-  // Esc tratado no teclado: depois de um cancel recusado, o Chrome fecha o dialog no Esc seguinte sem perguntar
-  el.tarefaEditor.addEventListener('keydown', (evento) => {
-    if (evento.key === 'Escape') {
+function ligarAreas() {
+  [el.tarefasLista, el.hojeTarefas, el.tarefasKanban].forEach((area) => area.addEventListener('click', agirNaTarefa));
+  [el.tarefasLista, el.tarefasKanban].forEach((area) => area.addEventListener('keydown', (evento) => {
+    if ((evento.key === 'Enter' || evento.key === ' ') && evento.target.matches('[role="button"][data-acao], tr.linha')) {
       evento.preventDefault();
-      pedirParaFechar();
+      agirNaTarefa(evento);
     }
-  });
-  el.tarefaEditor.addEventListener('cancel', (evento) => evento.preventDefault());
-  el.tarefaEditor.addEventListener('close', () => {
-    editada = null;
-  });
-  // fecha só se o clique começou e terminou no fundo: selecionar texto e soltar fora não conta
-  let comecouNoFundo = false;
-  const noFundo = (evento) => {
-    const caixa = el.tarefaEditor.getBoundingClientRect();
-    return evento.target === el.tarefaEditor && (evento.clientX < caixa.left || evento.clientX > caixa.right
-      || evento.clientY < caixa.top || evento.clientY > caixa.bottom);
-  };
-  el.tarefaEditor.addEventListener('pointerdown', (evento) => {
-    comecouNoFundo = noFundo(evento);
-  });
-  el.tarefaEditor.addEventListener('click', (evento) => {
-    if (comecouNoFundo && noFundo(evento)) {
-      pedirParaFechar();
+  }));
+  let estreitaAntes = estreita();
+  addEventListener('resize', () => {
+    if (estreita() !== estreitaAntes) {
+      estreitaAntes = estreita();
+      render();
     }
-    comecouNoFundo = false;
-  });
-  el.tarefaApagar.addEventListener('click', apagarEditada);
-  el.tNovoItem.addEventListener('keydown', adicionarItem);
-  el.tChecklist.addEventListener('change', mexerNoChecklist);
-  el.tChecklist.addEventListener('click', mexerNoChecklist);
-  el.tCommits.addEventListener('input', mexerNosCommits);
-  el.tCommits.addEventListener('click', mexerNosCommits);
-  el.tNovoCommit.addEventListener('click', novoCommit);
-  el.tFocar.addEventListener('click', () => editada?.id && focarEm(editada.id));
-  el.tTitulo.addEventListener('input', () => {
-    el.tarefaEditorTitulo.textContent = el.tTitulo.value.trim() || 'Nova tarefa';
   });
 }
 
 /**
- * @description Liga a tela de Tarefas e o bloco do Hoje, e carrega as tarefas da empresa do servidor
+ * @description Liga a tela de Tarefas, o painel e o bloco do Hoje, e carrega as tarefas da empresa do servidor
  * @param {{id: string, empresaId: string, ehAdm: boolean}} quem - o usuário logado
  */
 export async function iniciarTarefas(quem) {
   store.definirSessao(quem);
-  opcoes(el.tPrioridade, PRIORIDADES);
-  opcoes(el.tRecorrencia, RECORRENCIAS, 'Não se repete');
-
-  [el.tarefasLinhas, el.hojeTarefas, el.tarefasKanban].forEach((area) => area.addEventListener('click', agirNaTarefa));
-  el.tarefasKanban.addEventListener('keydown', (evento) => {
-    if ((evento.key === 'Enter' || evento.key === ' ') && evento.target.matches('[role="button"][data-acao]')) {
-      evento.preventDefault();
-      agirNaTarefa(evento);
-    }
-  });
+  iniciarDetalhe({ abrirMenuDeStatus });
+  ligarAreas();
   el.tarefaRapida.addEventListener('submit', adicionarRapido);
   ligarFiltros();
-  ligarEditor();
   ligarKanban();
   ligarMenuDeStatus();
 
   store.assinar(render);
-  store.assinarFoco((id) => editada?.id === id && pintarFocoDoEditor());
+  // o pomodoro soma foco a cada poucos segundos: no painel, só o texto do foco da tarefa aberta muda
+  store.assinarFoco((id) => id === tarefaAberta() && atualizarFoco());
   aoMudarTarefaEmFoco(render);
+  aoMudarPainel(() => {
+    const aberta = tarefaAberta();
+    el.tarefasLista.querySelectorAll('[data-id]').forEach((linha) => {
+      linha.setAttribute('aria-current', String(linha.dataset.id === aberta));
+    });
+  });
   render();
 
   try {

@@ -12,6 +12,8 @@ const tarefas = new Map();
 const clientes = new Map();
 const ouvintes = new Set();
 const ouvintesDoFoco = new Set();
+const ouvintesDaAtividade = new Set();
+let cancelarTempoReal = null;
 let jaCarregou = false;
 let colegas = [];
 let config = { status: STATUS_PADRAO, usaCommits: false };
@@ -120,7 +122,41 @@ function comNomeDoCliente(tarefa) {
 }
 
 /**
- * @description Recarrega tudo do servidor: tarefas, clientes, colegas e configuração
+ * @description Avisa quando chega atividade nova em qualquer tarefa da empresa
+ * @param {(atividade: object) => void} ouvinte
+ */
+export function assinarAtividade(ouvinte) {
+  ouvintesDaAtividade.add(ouvinte);
+}
+
+const SEM_FOCO = ({ focoMs, pomodoros, ...resto }) => JSON.stringify(resto);
+
+/* Mudança vinda de outra aba ou de um colega. Se só o foco mudou (o pomodoro de alguém somando), vai pelo
+   canal do foco: repintar a tela a cada soma fecharia selects abertos e cortaria o arraste do Kanban. */
+async function aoGravarTarefaRemota(tarefa) {
+  if (tarefa.clienteId && !clientes.has(tarefa.clienteId)) {
+    (await api.listarClientes()).forEach((cliente) => clientes.set(cliente.id, cliente));
+  }
+  const chegou = comNomeDoCliente(tarefa);
+  const atual = tarefas.get(chegou.id);
+  tarefas.set(chegou.id, chegou);
+  if (atual && SEM_FOCO(atual) === SEM_FOCO(chegou)) {
+    ouvintesDoFoco.forEach((ouvinte) => ouvinte(chegou.id));
+    return;
+  }
+  notificar();
+}
+
+function ligarTempoReal() {
+  cancelarTempoReal?.();
+  cancelarTempoReal = sessao.empresaId ? api.assinarMudancas(sessao.empresaId, {
+    aoGravarTarefa: (tarefa) => aoGravarTarefaRemota(tarefa).catch(() => {}),
+    aoRegistrarAtividade: (atividade) => ouvintesDaAtividade.forEach((ouvinte) => ouvinte(atividade)),
+  }) : null;
+}
+
+/**
+ * @description Recarrega tudo do servidor: tarefas, clientes, colegas e configuração; liga o tempo real
  */
 export async function carregar() {
   // sem empresa (ex.: super ADM fora de uma) a RLS não devolve nada: fica a configuração padrão
@@ -134,6 +170,9 @@ export async function carregar() {
   config = configDaEmpresa;
   tarefas.clear();
   lista.forEach((tarefa) => tarefas.set(tarefa.id, comNomeDoCliente(tarefa)));
+  if (!jaCarregou) {
+    ligarTempoReal();
+  }
   jaCarregou = true;
   notificar();
 }

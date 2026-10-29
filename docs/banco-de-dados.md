@@ -17,6 +17,7 @@ O schema inteiro está em `supabase/migrations/`, aplicado em ordem pelo `supaba
 | `20261030150000_jornadas_da_empresa.sql` | Jornadas da empresa: `modelos_jornada`, `versoes_jornada` e `atribuicoes_jornada`, função `da_minha_empresa`, trigger `conferir_atribuicao_jornada` e RLS (todos leem, só o ADM grava). As vigências de cada usuário viram um modelo "Jornada de <nome>" atribuído desde a primeira. A tabela antiga `jornadas` fica só leitura até o front novo entrar no ar. |
 | `20261030180000_adm_le_ponto_da_empresa.sql` | Policy de leitura em `dias` para o ADM da empresa (`eh_admin()` e `da_minha_empresa(user_id)`). Gravar e apagar continuam só do dono. |
 | `20261031120000_tarefas_da_empresa.sql` | Tabela `clientes` (por empresa), `tarefas.empresa_id`, `responsavel_id` e `cliente_id` (as tarefas existentes vão para a empresa do dono, com ele de responsável, e os textos de cliente viram cadastros), RLS das tarefas por empresa (apagar: quem criou, o responsável ou o ADM), `carimbar_tarefa` fixando criador e empresa, função `colegas()` e `empresas.status_tarefas`/`usa_commits` (o ADM altera; a TimEver mantém os 6 status e os commits). |
+| `20261101120000_atividade_das_tarefas.sql` | Tabela `atividades_tarefa` (criada, status, campo, comentário), trigger `registrar_atividade_tarefa` (o servidor grava as mudanças de status, título, prazo, prioridade, responsável e cliente), evento "criada" para as tarefas existentes, RLS (todos leem; comentário só em nome próprio; o autor ou o ADM apaga o comentário) e `tarefas` + `atividades_tarefa` na publicação do Realtime. |
 
 ## Tabelas
 
@@ -92,6 +93,21 @@ Só a função do Netlify (service role) ou o SQL Editor criam e alteram empresa
 | `concluida_em` | timestamptz | carimbado pelo trigger ao concluir; volta a `null` ao reabrir |
 | `criado_em`, `atualizado_em` | timestamptz | carimbados pelo trigger |
 
+### `atividades_tarefa`: histórico e comentários das tarefas
+
+| Coluna | Tipo | Regra |
+|---|---|---|
+| `id` | bigint, PK | |
+| `tarefa_id`, `empresa_id` | uuid | apagar a tarefa apaga a atividade |
+| `user_id` | uuid | quem fez (`auth.uid()` no trigger) ou quem comentou |
+| `tipo` | text | `criada`, `status`, `campo` ou `comentario` |
+| `campo` | text | em `campo`: `titulo`, `prazo`, `prioridade`, `responsavel` ou `cliente` |
+| `de`, `para` | text | valores antes e depois (responsável vai como id) |
+| `texto` | text | só no comentário, 1 a 4.000 caracteres |
+| `criado_em` | timestamptz | |
+
+O foco do pomodoro não gera evento. Não há update pelo cliente.
+
 ### `clientes`: cadastro de clientes da empresa
 
 | Coluna | Tipo | Regra |
@@ -139,6 +155,7 @@ Substituída pelas tabelas acima. Fica só leitura enquanto o front antigo pode 
 | `dias` | as próprias; o ADM lê as dos membros da empresa | só as próprias, com perfil ativo numa empresa ativa |
 | `pomodoro` | só as próprias linhas, com perfil ativo numa empresa ativa | idem |
 | `tarefas` | todas as da empresa | criar e alterar: membros, com responsável e cliente da empresa; apagar: quem criou, o responsável ou o ADM |
+| `atividades_tarefa` | toda a da empresa | inserir: só comentário, em nome próprio, em tarefa da empresa; apagar: o autor ou o ADM, só comentário |
 | `clientes` | todos os da empresa | criar: membros; alterar e apagar: o ADM |
 | `modelos_jornada`, `versoes_jornada` | todos da empresa | só o ADM da empresa |
 | `atribuicoes_jornada` | as próprias; o ADM lê as da empresa | só o ADM, e só para membros da empresa dele |

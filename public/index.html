@@ -258,18 +258,30 @@
             <button type="button" data-filtro="concluidas" aria-pressed="false">Concluídas</button>
             <button type="button" data-filtro="todas" aria-pressed="false">Todas</button>
           </div>
+          <label class="agrupar">
+            <span class="texto-mudo pequeno">Agrupar</span>
+            <select id="tarefasAgrupar">
+              <option value="status">por status</option>
+              <option value="cliente">por cliente</option>
+              <option value="responsavel">por responsável</option>
+              <option value="nenhum">sem grupos</option>
+            </select>
+          </label>
           <select id="tarefasResponsavel" aria-label="Filtrar por responsável"></select>
           <select id="tarefasCliente" aria-label="Filtrar por cliente ou projeto"></select>
           <input id="tarefasBusca" type="search" placeholder="Buscar" aria-label="Buscar tarefas">
         </div>
       </div>
 
-      <div class="colunas">
-        <section class="cartao tarefas-lista" id="tarefasLista" aria-label="Lista de tarefas">
-          <div class="tarefas-linhas" id="tarefasLinhas"></div>
-        </section>
-        <section class="tarefas-kanban" id="tarefasKanban" aria-label="Quadro de tarefas" hidden></section>
+      <div class="tarefas-area" id="tarefasArea" data-detalhe="fechado">
+        <div class="tarefas-principal">
+          <section class="cartao tabela-envolve" id="tarefasLista" aria-label="Lista de tarefas"></section>
+          <section class="tarefas-kanban" id="tarefasKanban" aria-label="Quadro de tarefas" hidden></section>
+        </div>
+        <div class="divisor" id="tarefasDivisor" role="separator" aria-orientation="vertical" aria-label="Redimensionar o painel da tarefa" hidden></div>
+        <aside class="cartao detalhe" id="tarefaDetalhe" aria-label="Tarefa aberta" hidden></aside>
       </div>
+      <div class="veu" id="tarefasVeu" hidden></div>
     </section>
 
     <!-- ==================== BANCO DE HORAS ==================== -->
@@ -711,59 +723,7 @@
       </div>
     </section>
 
-    <!-- editor de tarefa (pop-up) e menu de status: servem a Tarefas e ao Hoje -->
-    <dialog class="tarefa-modal" id="tarefaEditor" aria-labelledby="tarefaEditorTitulo">
-      <div class="editor-topo">
-        <div>
-          <span class="texto-mudo pequeno" id="tarefaEditorRotulo">Tarefa</span>
-          <h2 id="tarefaEditorTitulo">Tarefa</h2>
-        </div>
-        <button class="botao-icone" id="tarefaFechar" type="button" aria-label="Fechar">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12"></path><path d="M18 6L6 18"></path></svg>
-        </button>
-      </div>
-
-      <form class="tarefa-form" id="tarefaForm" novalidate>
-        <label>Título<input id="tTitulo" maxlength="200" autocomplete="off" required></label>
-        <div class="tarefa-form-dupla">
-          <label>Cliente / projeto<input id="tCliente" maxlength="80" autocomplete="off" list="tClientes"></label>
-          <label>Responsável<select id="tResponsavel"></select></label>
-        </div>
-        <datalist id="tClientes"></datalist>
-        <div class="tarefa-form-grade">
-          <label>Status<select id="tStatus"></select></label>
-          <label>Prioridade<select id="tPrioridade"></select></label>
-          <label>Prazo<input type="date" id="tPrazo"></label>
-          <label>Repetir<select id="tRecorrencia"></select></label>
-        </div>
-        <label>Anotações<textarea id="tAnotacoes" rows="4" maxlength="10000" placeholder="Link do chamado, contexto, decisões…"></textarea></label>
-
-        <fieldset class="tarefa-bloco">
-          <legend>Checklist <span class="texto-mudo pequeno" id="tChecklistProgresso"></span></legend>
-          <div class="checklist" id="tChecklist"></div>
-          <div class="tarefa-adicionar">
-            <input id="tNovoItem" maxlength="200" autocomplete="off" placeholder="Novo item e Enter" aria-label="Novo item do checklist">
-          </div>
-        </fieldset>
-
-        <fieldset class="tarefa-bloco" id="tBlocoCommits">
-          <legend>Commits</legend>
-          <div class="commits" id="tCommits"></div>
-          <button class="botao botao-secundario botao-pequeno" id="tNovoCommit" type="button">Adicionar commit</button>
-        </fieldset>
-
-        <div class="tarefa-foco">
-          <span class="texto-secundario" id="tFoco">Sem foco registrado</span>
-          <button class="botao botao-secundario botao-pequeno" id="tFocar" type="button">Focar nesta tarefa</button>
-        </div>
-
-        <span class="texto-mudo pequeno estado" id="tarefaEstado" role="status"></span>
-        <div class="editor-acoes">
-          <button class="botao botao-primario" id="tarefaSalvar" type="submit">Salvar tarefa</button>
-          <button class="botao botao-perigo" id="tarefaApagar" type="button">Apagar</button>
-        </div>
-      </form>
-    </dialog>
+    <!-- menu de status: serve à lista, ao Kanban, ao painel e ao Hoje -->
     <div class="menu-status" id="tarefaStatusMenu" role="menu" aria-label="Mudar o status" hidden></div>
   </main>
 
