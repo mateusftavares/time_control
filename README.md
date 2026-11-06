@@ -57,3 +57,7 @@ scripts/                 migração do app antigo e conferências do banco de ho
 test/                    node --test
 docs/                    documentação
 ```
+
+## Licença
+
+[PolyForm Noncommercial 1.0.0](LICENSE.md). Uso, cópia e modificação são livres para fins **não comerciais**, como projetos pessoais, estudo e pesquisa. Qualquer uso comercial está proibido, inclusive vender, cobrar acesso ou usar o código em produto ou serviço pago. Para uso comercial, fale com o autor.
